@@ -141,5 +141,10 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
 - Core Debug Registers<br>
     **Address** | **Name** | **Usage** 
     ------------|----------|-----------
+    0x7B0 | dcsr | Stores the configuration of debug setting and status
+    0x7B1 | dpc | Save the next PC before trapped into debug mode for resuming to correct address
+    0x7B2 | dscratch0 | For debug module to store arbitrary information
+    0x7B3 | dscratch1 | For debug module to store arbitrary information
+    
 
 

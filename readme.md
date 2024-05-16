@@ -27,7 +27,7 @@ Multiple hart support | Not supported at this time.
 Abstract Command | Support to access GPR.
 
 ## System overview
-![block diagram of debug module](Block_diagram.png)
+![block diagram of debug module](./doc/Block_diagram.png)
 <br>
 *From chap 2 of RISCV-debug spec*
 
@@ -123,19 +123,20 @@ With regard to construct communication between host PC and debug module, we choo
     - Hadshaking protocal:
         For the correctness of the communication, two-way handshake is adopted in our design.
     <details><summary>Expand the example</summary>
-    <IMG src = "dmi_protocol.png"><br>
+    <IMG src = "./doc/dmi_protocol.png"><br>
     this fiqure is download from <a href = https://github.com/pulp-platform/riscv-dbg/tree/master/doc>pulp-debug-system</a>
     </details>
 - **Debug Transport Module**:
     - JTAG-Protocol [(IEEE standard for JTAG)](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6515989):<br>
       Since Xilinx FPGA adopt USB-JTAG as a bridge for sending bitstream and gathering waveform captured by ILA(Integrated Logic Anylyzer), choosing USB-JTAG can prevent our design from adding extra cable.
-      ![JTAG FSM diagram](JTAG-TAP-Controller.png)
+      ![JTAG FSM diagram](./doc/JTAG-TAP-Controller.png)
     - JTAG-TAP(JTAG-Test Access Port):<br>
       Xilinx provide [BSCANE2](https://docs.amd.com/r/2021.1-English/ug953-vivado-7series-libraries/BSCANE2) primitive for user to access USB-JTAG directly, they will form a daisy-chain if there are more than one BSCANE2 are instantiated. We use two BSCANE2 primative to avoid the higher complexity of using tunnel mode as discussed in [this issue](https://github.com/openhwgroup/core-v-mcu/issues/117#issuecomment-826280883).
     - Debug Transport Module CSR(dtmcs):<br>
       A register contain the current state information about DTM 
-- **Clock-Domain-Crossing module**:
-    The Aquila core and Debug Module work in the same clock domain, but the jtag cable transmit data at rate 
+- **Clock-Domain-Crossing module**:<br>
+    The Aquila core and Debug Module work in the same clock domain, but the host may construct JTAG connection with clock rate which is different from the core's, so a CDC module is neccessary for host and core to prevent occurence of errors.
+> The CDC module is download from the [PULP's project](https://github.com/pulp-platform/riscv-dbg/blob/master/src/dmi_cdc.sv), not designed by myself.
 
 ## Change in Aquila Core
 For the Aquila Core to be compatible with our Debug Module implementation, some minimized and essential changes should be apply to the original aquila core.

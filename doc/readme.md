@@ -122,7 +122,7 @@ With regard to construct communication between host PC and debug module, we choo
     - Hadshaking protocal:
         For the correctness of the communication, two-way handshake is adopted in our design.
     <details><summary>Expand the example</summary>
-    <IMG src = "dmi_protocol.png">
+    <IMG src = "dmi_protocol.png"><br>
     this fiqure is download from <a href = https://github.com/pulp-platform/riscv-dbg/tree/master/doc>pulp-debug-system</a>
     </details>
 - **Debug Transport Module**:
@@ -134,4 +134,12 @@ With regard to construct communication between host PC and debug module, we choo
     - Debug Transport Module CSR(dtmcs):<br>
       A register contain the current state information about DTM 
     
-      
+## Change in Aquila Core
+For the Aquila Core to be compatible with our Debug Module implementation, some minimized and essential changes should be apply to the original aquila core.
+- CSR_file:<br>
+[RISC-V debug spec](chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://riscv.org/wp-content/uploads/2019/03/riscv-debug-release.pdf) defines several CSRs for supporting debug and they are listed below.
+- Core Debug Registers<br>
+    **Address** | **Name** | **Usage** 
+    ------------|----------|-----------
+
+

@@ -154,5 +154,6 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
         The following registers are extension that support adding **hardware-assist breakpoint**
         **Address** | **Name** | **Usage**
         ------------|----------|----------
-
-        
+        0x7a0 | tselect | **Trigger Select**, write trigger number to this register to select which trigger to operating on
+        0x7a1 | tdata1 | **Trigger data 1**, the higher 4 bits specify the type of trigger selected by tselect, which is hardwired to 2, indicating that the trigger is match control.
+        0x7a1 | mcontrol | **Match Control**, this is the lower bits of the register, specify the function of selected trigger. Ex: trap into debug mode before/after instruction execution, trigger is activated in User/Machine/Debug mode.

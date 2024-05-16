@@ -133,18 +133,24 @@ With regard to construct communication between host PC and debug module, we choo
       Xilinx provide [BSCANE2](https://docs.amd.com/r/2021.1-English/ug953-vivado-7series-libraries/BSCANE2) primitive for user to access USB-JTAG directly, they will form a daisy-chain if there are more than one BSCANE2 are instantiated. We use two BSCANE2 primative to avoid the higher complexity of using tunnel mode as discussed in [this issue](https://github.com/openhwgroup/core-v-mcu/issues/117#issuecomment-826280883).
     - Debug Transport Module CSR(dtmcs):<br>
       A register contain the current state information about DTM 
-    
+- **Clock-Domain-Crossing module**:
+    The Aquila core and Debug Module work in the same clock domain, but the jtag cable transmit data at rate 
+
 ## Change in Aquila Core
 For the Aquila Core to be compatible with our Debug Module implementation, some minimized and essential changes should be apply to the original aquila core.
 - CSR_file:<br>
 [RISC-V debug spec](chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://riscv.org/wp-content/uploads/2019/03/riscv-debug-release.pdf) defines several CSRs for supporting debug and they are listed below.
-- Core Debug Registers<br>
-    **Address** | **Name** | **Usage** 
-    ------------|----------|-----------
-    0x7B0 | dcsr | Stores the configuration of debug setting and status
-    0x7B1 | dpc | Save the next PC before trapped into debug mode for resuming to correct address
-    0x7B2 | dscratch0 | For debug module to store arbitrary information
-    0x7B3 | dscratch1 | For debug module to store arbitrary information
-    
+    - Core Debug Registers:<br>
+        The following registers help the debug system work correctly.
+        **Address** | **Name** | **Usage** 
+        ------------|----------|-----------
+        0x7B0 | dcsr | Stores the configuration of debug setting and status
+        0x7B1 | dpc | Save the next PC before trapped into debug mode for resuming to correct address
+        0x7B2 | dscratch0 | For debug module to store arbitrary information
+        0x7B3 | dscratch1 | For debug module to store arbitrary information
+    - Trigger Module:<br>
+        The following registers are extension that support adding **hardware-assist breakpoint**
+        **Address** | **Name** | **Usage**
+        ------------|----------|----------
 
-
+        

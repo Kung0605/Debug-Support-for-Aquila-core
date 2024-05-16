@@ -28,6 +28,7 @@ Abstract Command | Support to access GPR.
 
 ## System overview
 ![block diagram of debug module](Block_diagram.png)
+<br>
 *From chap 2 of RISCV-debug spec*
 
 ## Component

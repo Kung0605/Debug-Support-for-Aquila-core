@@ -47,13 +47,29 @@ module debug_controller(
         case(state_q)
             Running: begin 
                 if (debug_trigger_match_i)
-                    state_d = stall_i ? Wait_stall_halt : Entering_halt;
+                    if (stall_i)
+                        state_d = Wait_stall_halt;
+                    else 
+                        state_d = Entering_halt;
+                    // state_d = stall_i ? Wait_stall_halt : Entering_halt;
                 else if (debug_strobe_i)
-                    state_d = stall_i ? Wait_stall_halt : Entering_halt;
+                    if (stall_i)
+                        state_d = Wait_stall_halt;
+                    else
+                        state_d = Entering_halt;
+                    // state_d = stall_i ? Wait_stall_halt : Entering_halt;
                 else if (debug_single_step_i)
-                    state_d = stall_i ? Wait_stall_step : Entering_step;
+                    if (stall_i)
+                        state_d = Wait_stall_step;
+                    else 
+                        state_d = Entering_step;
+                    // state_d = stall_i ? Wait_stall_step : Entering_step;
                 else if (debug_ebreak_i)
-                    state_d = stall_i ? Wait_stall_halt : Entering_halt;
+                    if (stall_i)
+                        state_d = Wait_stall_halt;
+                    else 
+                        state_d = Entering_halt;
+                    //state_d = stall_i ? Wait_stall_halt : Entering_halt;
                 else 
                     state_d = Running;
             end
@@ -73,7 +89,11 @@ module debug_controller(
                 if (~halted_i)
                     state_d = Running;
                 else if (debug_ebreak_i)
-                    state_d = stall_i ? Wait_stall_halt : Entering_halt;
+                    if (stall_i)
+                        state_d = Wait_stall_halt;
+                    else 
+                        state_d = Entering_halt;   
+                    // state_d = stall_i ? Wait_stall_halt : Entering_halt;
                 else 
                     state_d = Halted;
             end

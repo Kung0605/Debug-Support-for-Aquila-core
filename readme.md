@@ -120,10 +120,10 @@ With regard to construct communication between host PC and debug module, we choo
         **data** | **resp** 
         ---------|---------
         Write: Have no usage<br>Read: Returned data for previous request | **DTM_SUCCESS**: The request is correctly served and data is returned<br>**DTM_ERR**: There is some error during previous request<br>**DTM_BUSY**: DTM(Debug transport module) is busy, host should slow down the rate of sending request
-    - Hadshaking protocal:
+    - Hadshaking protocal:<br>
         For the correctness of the communication, two-way handshake is adopted in our design.
-    <details><summary>Expand the example</summary>
-    <IMG src = "./doc/dmi_protocol.png"><br>
+    <details open="true"><summary>Expand the example</summary>
+    <img style="width:max(400px, 50%);" src = "./doc/dmi_protocol.png"><br>
     this fiqure is download from <a href = https://github.com/pulp-platform/riscv-dbg/tree/master/doc>pulp-debug-system</a>
     </details>
 - **Debug Transport Module**:
@@ -138,7 +138,7 @@ With regard to construct communication between host PC and debug module, we choo
     The Aquila core and Debug Module work in the same clock domain, but the host may construct JTAG connection with clock rate which is different from the core's, so a CDC module is neccessary for host and core to prevent occurence of errors.
 > The CDC module is download from the [PULP's project](https://github.com/pulp-platform/riscv-dbg/blob/master/src/dmi_cdc.sv), not designed by myself.
 
-## Change in Aquila Core
+## Changes in Aquila Core
 For the Aquila Core to be compatible with our Debug Module implementation, some minimized and essential changes should be apply to the original aquila core.
 - CSR_file:<br>
 [RISC-V debug spec](chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://riscv.org/wp-content/uploads/2019/03/riscv-debug-release.pdf) defines several CSRs for supporting debug and they are listed below.
@@ -156,4 +156,23 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
         ------------|----------|----------
         0x7a0 | tselect | **Trigger Select**, write trigger number to this register to select which trigger to operating on
         0x7a1 | tdata1 | **Trigger data 1**, the higher 4 bits specify the type of trigger selected by tselect, which is hardwired to 2, indicating that the trigger is match control.
-        0x7a1 | mcontrol | **Match Control**, this is the lower bits of the register, specify the function of selected trigger. Ex: trap into debug mode before/after instruction execution, trigger is activated in User/Machine/Debug mode.
+        0x7a1 | mcontrol | **Match Control**, this is the lower bits of the register, specify the function of selected trigger. Ex: trap into debug mode before/after instruction execution, trigger is activated in User/Machine/Debug mode, match condition is ==/>=/<=, etc.
+        0x7a12 | tdata2 | **Match Value**, this register store the breakpoint address of selected trigger, when the PC in fetch stage match the value in this register, the trigger_match signal will be set, so the core can halt when that instruction being executed.
+- Decode stage:<br>
+    Add some logic to support decoding of risc-v instructions and integrate dret into system jump.
+    **Instruction** | **Description**
+    ----------------|----------------
+    ebreak | User mode: Trap into debug mode. <br> Machine mode: Do nothing. <br> Debug mode: Jump to Haltaddress.
+    dret | User mode: Do nothing.<br>Machine mode: Do nothing.<br>Debug mode: Jump to dpc.
+- Program Counter:<br>
+    Set PC to haltaddress when following event occur
+    - External debug request
+    - Execuction of ebreak instruction
+    - Trigger match
+- Debug Controller:<br>
+    The main module to control the debug state of Aquila core.
+    - State transtion of debug system:
+    <img src="./doc/FSM_debug_controller_0.svg">
+- Core Top:<br>
+    - Determine the value of dpc to store from the cause of debug
+    - Connect signals of debug_controller to each module

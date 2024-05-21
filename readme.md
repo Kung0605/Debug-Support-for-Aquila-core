@@ -192,7 +192,7 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
 - **Read register**:<br>
     1. dmi_req = {8'h17, 2'h2, 32'h00220XXX}; // write to command and read from XXX register
     2. dm_mem generate abstract command accordingly.
-    ```asm
+    ```riscv
     Abstract_command:
         csrrw x0, dscratch1, x10 // backup x10 
         auipc x10, 0 // store current cp

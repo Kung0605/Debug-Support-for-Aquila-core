@@ -180,3 +180,14 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
 - Core Top:<br>
     - Determine the value of dpc to store from the cause of debug
     - Connect signals of debug_controller to other modules
+## Working Mechenism Example
+- **Halt the core**:<br>
+    1. dmi_req = {7'h10, 2'h2, 32'h80000001}; // write to dmcontrol and set haltreq to 1
+    2. dm_csr send debug_request to core
+    3. core set PC to haltaddress, execute instruction in debug rom.
+- **Resume the core**:<br>
+    1. dmi_req = {7'h10, 2'h2, 32'h40000001}; // write to dmcontrol and set resumereq to 1
+    2. Resume flag in dm_mem will be set to 1
+    3. Core will branch to resumeaddress and execute the command for resume, which will end up with dret
+- **Read register**:<br>
+    1. 

@@ -194,9 +194,9 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
     2. dm_mem generate abstract command accordingly.
     ```riscv
     Abstract_command:
-        csrrw x0, dscratch1, x10  // backup x10 
-        auipc x10, 0              // store current cp
-        srli x10, x10, 12         // these two line calculate base address for debug memory from pc[31:20]
+        csrrw x0, dscratch1, x10 // backup x10 
+        auipc x10, 0             // store current cp
+        srli x10, x10, 12        // these two line calculate base address for debug memory from pc[31:20]
         slli x10, x10, 12 
         csrrw x0, dscratch0, x8  // backup x8
         csrrs x8, tdata1, x0     // store tdata1 in x8

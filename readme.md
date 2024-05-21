@@ -173,6 +173,10 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
     The main module to control the debug state of Aquila core.
     - State transtion of debug system:
     <img src="./doc/FSM_debug_controller_0.svg">
+    - Determine the cause of debug by priority
+        1. Breakpoint match.
+        2. External debug request.
+        3. Stepping.
 - Core Top:<br>
     - Determine the value of dpc to store from the cause of debug
-    - Connect signals of debug_controller to each module
+    - Connect signals of debug_controller to other modules

@@ -37,7 +37,7 @@ Abstract Command | Support to access GPR.
 
 There are several register in the debug module, host can write to these registers to control the debug system and read from these registers to get the information about the core or retrieve returned data of previous command.
 
-- **Debug Module Control** (dmcontrol, 0x10): <br> Host will write to this register to control the state of current selected core<details><summary>Expand all</summary>
+- **Debug Module Control** (dmcontrol, 0x10): <br> Host will write to this register to control the state of current selected core<details open="true"><summary>Expand all</summary>
     
     **Field** | **Access** | **Usage**
     ----------|------------|----------
@@ -47,7 +47,7 @@ There are several register in the debug module, host can write to these register
     dmactive | W/R | Write 1 to this field to indicate the debug module is activated
 </details>
 
-- **Debug Module Status** (dmstatus, 0x11):<br>This register contains the core's information, host can read it to check if the debug system work correctly<details><summary>Expand all</summary>
+- **Debug Module Status** (dmstatus, 0x11):<br>This register contains the core's information, host can read it to check if the debug system work correctly<details open="true"><summary>Expand all</summary>
 
     **Field** | **Access** | **Usage** 
     ----------|------------|-----------
@@ -57,7 +57,7 @@ There are several register in the debug module, host can write to these register
     all/anyhalted | R | Read from this field to check if the core are in debug mode
 </details>
 
-- **Abstract Command Control and Status** (abstractcs, 0x16):<br>Host can read this register to get the information about Abstract Command or Program Buffer<details><summary>Expand all</summary>
+- **Abstract Command Control and Status** (abstractcs, 0x16):<br>Host can read this register to get the information about Abstract Command or Program Buffer<details open="true"><summary>Expand all</summary>
 
     **Field** | **Access** | **Usage** 
     ----------|------------|-----------
@@ -67,7 +67,7 @@ There are several register in the debug module, host can write to these register
     datacount | R | The size of data register, which is 2 in our implementation
 </details>
 
-- **Abstract Command** (command, 0x17):<br>Write to this register will make the hardware to generate corresponding instruction for performing certain operation, which will save time from writing to program buffer<details><summary>Expand all</summary>
+- **Abstract Command** (command, 0x17):<br>Write to this register will make the hardware to generate corresponding instruction for performing certain operation, which will save time from writing to program buffer<details open="true"><summary>Expand all</summary>
 
     **Field** | **Access** | **Usage**
     ----------|------------|-----------
@@ -75,7 +75,7 @@ There are several register in the debug module, host can write to these register
     control | W | Specify the operation on choosen register
 </details>
 
-- **Program Buffer** (progbuf0-progbuf15, 0x20-0x2f):<br>Since our implementation does not support using abstracts command to read/write memory, program buffer is needed to provide assistance for memory operation<details><summary>Expand all</summary>
+- **Program Buffer** (progbuf0-progbuf15, 0x20-0x2f):<br>Since our implementation does not support using abstracts command to read/write memory, program buffer is needed to provide assistance for memory operation<details open="true"><summary>Expand all</summary>
 
     **Field** | **Access** | **Usage**
     ----------|------------|-----------
@@ -90,7 +90,7 @@ This is a 16kB memory interface of Debug Module, the functionality of this modul
 - **Debug Ram**:
     - Program Buffer:<br>User can write arbitrary instruction into Program Buffer to force the core to do anything.
     - Abstract Command:<br>In order to access registers, the debug module will generate series of instruction to get the register's value and write them into Data registers.
-- **Memory mapping**:<details><summary>Expand all</summary>
+- **Memory mapping**:<details open="true"><summary>Expand all</summary>
 
     **Address** | **Description** 
     ------------|-----------------
@@ -108,6 +108,8 @@ This is a 16kB memory interface of Debug Module, the functionality of this modul
 
 </details>
 
+- State transition diagram<br>
+![State transition for dm_mem](./doc/FSM_dm_mem.svg)
 ### Debug Module Jtag Interface (dmi_jtag)
 With regard to construct communication between host PC and debug module, we choose JTAG as our communication protocal. The main purpose of this module is receiving JTAG signal from host PC to generate debug request(dmi_req), and receiving dmi_resp from debug module and translating it into JTAG signal for transmission.
 
@@ -180,7 +182,7 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
 - Core Top:<br>
     - Determine the value of dpc to store from the cause of debug
     - Connect signals of debug_controller to other modules
-## Working Mechenism Example
+## How debugger(openOCD) interact with debug module
 - **Halt the core**:<br>
     1. dmi_req = {8'h10, 2'h2, 32'h80000001}; // write to dmcontrol and set haltreq to 1
     2. dm_csr send debug_request to core
@@ -215,3 +217,30 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
     2. Read tdata1 for selected trigger and check if the trigger type is correct.
     3. Write breakpoint address to tdata2(tmatch_value).
     4. If decode_stage's PC is equal to any element in tmatch_value(which is a array), debug_controller will raise a debug_halt_req to halt the core.
+
+## Demo Example
+- construct openOCD connection:<br>
+If there is no error during openOCD connection, the terminal will output as below.
+```
+bash:~/project/project.srcs/sources_1/demo$ openocd -f arty-a7-openocd-cfg.tcl 
+Open On-Chip Debugger 0.12.0+dev-03677-g9f4c0ba1c (2024-02-22-21:57)
+Licensed under GNU GPL v2
+For bug reports, read
+        http://openocd.org/doc/doxygen/bugs.html
+force hard breakpoints
+Info : ftdi: if you experience problems at higher adapter clocks, try the command "ftdi tdo_sample_edge falling"
+Info : clock speed 10000 kHz
+Info : JTAG tap: riscv.cpu tap/device found: 0x13631093 (mfg: 0x049 (Xilinx), part: 0x3631, ver: 0x1)
+Info : [riscv.cpu] datacount=2 progbufsize=8
+Info : [riscv.cpu] Vector support with vlenb=0
+Info : [riscv.cpu] S?aia detected with IMSIC
+Info : [riscv.cpu] Examined RISC-V core
+Info : [riscv.cpu]  XLEN=32, misa=0x0
+[riscv.cpu] Target successfully examined.
+Info : [riscv.cpu] Examination succeed
+Info : starting gdb server for riscv.cpu on 3333
+Info : Listening on port 3333 for gdb connections
+riscv.cpu halted due to undefined.
+Info : Listening on port 6666 for tcl connections
+Info : Listening on port 4444 for telnet connections
+```

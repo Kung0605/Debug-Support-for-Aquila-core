@@ -23,18 +23,7 @@ module dm_top #(
   input        [BusWidth-1:0]   slave_addr_i,
   input        [BusWidth/8-1:0] slave_be_i,
   input        [BusWidth-1:0]   slave_wdata_i,
-  output       [BusWidth-1:0]   slave_rdata_o,
-
-  output                        master_req_o,
-  output       [BusWidth-1:0]   master_add_o,
-  output                        master_we_o,
-  output       [BusWidth-1:0]   master_wdata_o,
-  output       [BusWidth/8-1:0] master_be_o,
-  input                         master_gnt_i,
-  input                         master_r_valid_i,
-  input                         master_r_err_i,
-  input                         master_r_other_err_i, // *other_err_i has priority over *err_i
-  input        [BusWidth-1:0]   master_r_rdata_i
+  output       [BusWidth-1:0]   slave_rdata_o
 );
 
   localparam                        ProgBufSize = 8;
@@ -58,22 +47,6 @@ module dm_top #(
   wire                              data_valid;
   wire                              ndmreset;
   wire  [19:0]                      hartsel;
-  // System Bus Access Module
-  wire  [BusWidth-1:0]              sbaddress_csrs_sba;
-  wire  [BusWidth-1:0]              sbaddress_sba_csrs;
-  wire                              sbaddress_write_valid;
-  wire                              sbreadonaddr;
-  wire                              sbautoincrement;
-  wire  [2:0]                       sbaccess;
-  wire                              sbreadondata;
-  wire  [BusWidth-1:0]              sbdata_write;
-  wire                              sbdata_read_valid;
-  wire                              sbdata_write_valid;
-  wire  [BusWidth-1:0]              sbdata_read;
-  wire                              sbdata_valid;
-  wire                              sbbusy;
-  wire                              sberror_valid;
-  wire  [2:0]                       sberror;
 
   wire                              dmi_rst_n;
 
@@ -122,23 +95,7 @@ module dm_top #(
     .progbuf_o_flatten       ( progbuf               ),
     .data_i_flatten          ( data_mem_csrs         ),
     .data_valid_i            ( data_valid            ),
-    .data_o_flatten          ( data_csrs_mem         ),
-
-    .sbaddress_o             ( sbaddress_csrs_sba    ),
-    .sbaddress_i             ( sbaddress_sba_csrs    ),
-    .sbaddress_write_valid_o ( sbaddress_write_valid ),
-    .sbreadonaddr_o          ( sbreadonaddr          ),
-    .sbautoincrement_o       ( sbautoincrement       ),
-    .sbaccess_o              ( sbaccess              ),
-    .sbreadondata_o          ( sbreadondata          ),
-    .sbdata_o                ( sbdata_write          ),
-    .sbdata_read_valid_o     ( sbdata_read_valid     ),
-    .sbdata_write_valid_o    ( sbdata_write_valid    ),
-    .sbdata_i                ( sbdata_read           ),
-    .sbdata_valid_i          ( sbdata_valid          ),
-    .sbbusy_i                ( sbbusy                ),
-    .sberror_valid_i         ( sberror_valid         ),
-    .sberror_i               ( sberror               )
+    .data_o_flatten          ( data_csrs_mem         )
   );
 
   dm_mem #(

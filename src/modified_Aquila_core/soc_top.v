@@ -292,14 +292,6 @@ UART(
     .RXD(uart_rx),
     .TXD(uart_tx)
 );
-wire               dm_host_req;
-wire [XLEN-1:0]    dm_host_add;
-wire               dm_host_we;
-wire [XLEN-1:0]    dm_host_wdata;
-wire [XLEN/8-1:0]  dm_host_be;
-wire               dm_host_gnt;
-wire               dm_host_r_valid;
-wire [XLEN-1:0]    dm_host_r_rdata;
 
 
 // --------------------------------------
@@ -366,18 +358,7 @@ dm_top # (
     .slave_addr_i         ( dm_device_addr    ),
     .slave_be_i           ( dm_device_be      ),
     .slave_wdata_i        ( dm_device_wdata   ),
-    .slave_rdata_o        ( dm_device_rdata   ),
-
-    .master_req_o           ( dm_host_req       ),
-    .master_add_o           ( dm_host_add       ),
-    .master_we_o            ( dm_host_we        ),
-    .master_wdata_o         ( dm_host_wdata     ),
-    .master_be_o            ( dm_host_be        ), 
-    .master_gnt_i           ( dm_host_gnt       ),
-    .master_r_valid_i       ( dm_host_r_valid   ),
-    .master_r_err_i         (                   ),
-    .master_r_other_err_i   (                   ),
-    .master_r_rdata_i       ( dm_host_r_rdata   )
+    .slave_rdata_o        ( dm_device_rdata   )
 );
 
 reg debug_req_prev;

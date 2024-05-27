@@ -41,27 +41,7 @@ module dm_csrs #(
   output reg   [DataCount*32-1:0]           data_o_flatten,
 
   input        [DataCount*32-1:0]           data_i_flatten,
-  input                                     data_valid_i,
-  // system bus access module (SBA)
-  output       [BusWidth-1:0]               sbaddress_o,
-  input        [BusWidth-1:0]               sbaddress_i,
-  output reg                                sbaddress_write_valid_o,
-  // control signals in
-  output                                    sbreadonaddr_o,
-  output                                    sbautoincrement_o,
-  output       [2:0]                        sbaccess_o,
-  // data out
-  output                                    sbreadondata_o,
-  output       [BusWidth-1:0]               sbdata_o,
-  output reg                                sbdata_read_valid_o,
-  output reg                                sbdata_write_valid_o,
-  // read data in
-  input        [BusWidth-1:0]               sbdata_i,
-  input                                     sbdata_valid_i,
-  // control signals
-  input                                     sbbusy_i,
-  input                                     sberror_valid_i, // bus error occurred
-  input        [2:0]                        sberror_i // bus error occurred
+  input                                     data_valid_i
 );
   // the amount of bits we need to represent all harts
   localparam HartSelLen = (NrHarts == 1) ? 1 : $clog2(NrHarts);
@@ -288,14 +268,6 @@ module dm_csrs #(
   assign dmi_resp_valid_o     = ~resp_queue_empty;
   assign dmi_req_ready_o      = ~resp_queue_full;
   assign resp_queue_push      = dmi_req_valid_i & dmi_req_ready_o;
-  // SBA
-  assign sbautoincrement_o = sbcs_q[16];
-  assign sbreadonaddr_o    = sbcs_q[20];
-  assign sbreadondata_o    = sbcs_q[15];
-  assign sbaccess_o        = sbcs_q[19:17];
-  assign sbdata_o          = sbdata_q[BusWidth-1:0];
-  assign sbaddress_o       = sbaddr_q[BusWidth-1:0];
-
   assign hartsel_o         = {dmcontrol_q[15:6], dmcontrol_q[25:16]}; // use hartselhi and hartsello to produce hartsel_o
 
   // needed to avoid lint warnings
@@ -369,15 +341,12 @@ module dm_csrs #(
     for (i = 0; i < DataCount; i = i + 1)
         data_d[i] = data_q[i];
     sbcs_d              = sbcs_q;
-    sbaddr_d            = {32'h0, sbaddress_i};
+    sbaddr_d            = {32'h0, 32'b0};
     sbdata_d            = sbdata_q;
 
     resp_queue_inp_data     = 32'h0; // set default data to be 0
     resp_queue_inp_resp     = DTM_SUCCESS; // if no error then resp is success
     cmd_valid_d             = 1'b0;
-    sbaddress_write_valid_o = 1'b0;
-    sbdata_read_valid_o     = 1'b0;
-    sbdata_write_valid_o    = 1'b0;
     clear_resumeack_o       = 1'b0;
 
     // helper variables
@@ -385,7 +354,7 @@ module dm_csrs #(
     a_abstractcs = 0;
 
     // reads
-    if (dmi_req_ready_o && dmi_req_valid_i && dtm_op == DTM_READ) begin
+    if (dmi_req_valid_i && dtm_op == DTM_READ) begin
         if (dm_csr_addr >= Data0 && dm_csr_addr <= DataEnd) begin
             resp_queue_inp_data = data_q[autoexecdata_idx[$clog2(DataCount)-1:0]];
             if (!cmdbusy_i) begin
@@ -426,29 +395,12 @@ module dm_csrs #(
         else if (dm_csr_addr == SBCS)         resp_queue_inp_data = sbcs_q;
         else if (dm_csr_addr == SBAddress0)   resp_queue_inp_data = sbaddr_q[31:0];
         else if (dm_csr_addr == SBAddress1)   resp_queue_inp_data = sbaddr_q[63:32];
-        else if (dm_csr_addr == SBData0) begin
-            // access while the SBA was busy
-            if (sbbusy_i || sbcs_q[22]) begin
-            sbcs_d[22] = 1'b1; // if access system bus when it is busy then generate a busy error
-            resp_queue_inp_resp = DTM_BUSY;
-            end else begin
-            sbdata_read_valid_o = (sbcs_q[14:12] == 0);
-            resp_queue_inp_data = sbdata_q[31:0];
-            end
-        end
-        else if (dm_csr_addr == SBData1) begin
-            // access while the SBA was busy
-            if (sbbusy_i || sbcs_q[22]) begin
-            sbcs_d[22] = 1'b1; // if access system bus when it is busy then generate a busy error
-            resp_queue_inp_resp = DTM_BUSY;
-            end else begin
-            resp_queue_inp_data = sbdata_q[63:32];
-            end
-        end
+        else if (dm_csr_addr == SBData0)      resp_queue_inp_data = sbdata_q[31:0];
+        else if (dm_csr_addr == SBData1)      resp_queue_inp_data = sbdata_q[63:32];
     end
 
     // write
-    if (dmi_req_ready_o && dmi_req_valid_i && dtm_op == DTM_WRITE) begin
+    if (dmi_req_valid_i && dtm_op == DTM_WRITE) begin
         if (dm_csr_addr >= Data0 && dm_csr_addr <= DataEnd) begin
           if (DataCount > 0) begin
             // attempts to write them while busy is set does not change their value
@@ -533,56 +485,13 @@ module dm_csrs #(
           end
         end
         else if (dm_csr_addr == SBCS) begin
-          // access while the SBA was busy
-          if (sbbusy_i) begin
-            sbcs_d[22] = 1'b1;
-            resp_queue_inp_resp = DTM_BUSY;
-          end else begin
-            sbcs = dmi_req_data;
-            sbcs_d = sbcs; // default assignment
-            // R/W1C
-            sbcs_d[22] = sbcs_q[22] & (~sbcs[22]); // system bus is in busy
-            sbcs_d[14:12]     = (|sbcs[14:12]) ? 3'b0 : sbcs_q[14:12]; // set current error type
-          end
+          sbcs = dmi_req_data;
+          sbcs_d = sbcs_q;
         end
-        else if (dm_csr_addr == SBAddress0) begin
-          // access while the SBA was busy
-          if (sbbusy_i || sbcs_q[22]) begin
-            sbcs_d[22] = 1'b1; 
-            resp_queue_inp_resp = DTM_BUSY;
-          end else begin
-            sbaddr_d[31:0] = dmi_req_data;
-            sbaddress_write_valid_o = (sbcs_q[14:12] == 3'b0);
-          end
-        end
-        else if (dm_csr_addr == SBAddress1) begin
-          // access while the SBA was busy
-          if (sbbusy_i || sbcs_q[22]) begin
-            sbcs_d[22] = 1'b1;
-            resp_queue_inp_resp = DTM_BUSY;
-          end else begin
-            sbaddr_d[63:32] = dmi_req_data;
-          end
-        end
-        else if (dm_csr_addr == SBData0) begin
-          // access while the SBA was busy
-          if (sbbusy_i || sbcs_q[22]) begin
-           sbcs_d[22] = 1'b1;
-           resp_queue_inp_resp = DTM_BUSY;
-          end else begin
-            sbdata_d[31:0] = dmi_req_data;
-            sbdata_write_valid_o = (sbcs_q[14:12] == 3'b0);
-          end
-        end
-        else if (dm_csr_addr == SBData1) begin
-          // access while the SBA was busy
-          if (sbbusy_i || sbcs_q[22]) begin
-           sbcs_d[22] = 1'b1;
-           resp_queue_inp_resp = DTM_BUSY;
-          end else begin
-            sbdata_d[63:32] = dmi_req_data;
-          end
-        end
+        else if (dm_csr_addr == SBAddress0) sbaddr_d[31:0] = dmi_req_data;
+        else if (dm_csr_addr == SBAddress1) sbaddr_d[63:32] = dmi_req_data;
+        else if (dm_csr_addr == SBData0)    sbdata_d[31:0] = dmi_req_data;
+        else if (dm_csr_addr == SBData1)    sbdata_d[63:32] = dmi_req_data;
     end
     // hart threw a command error and has precedence over bus writes
     if (cmderror_valid_i) begin
@@ -602,14 +511,7 @@ module dm_csrs #(
     // -------------
     // System Bus
     // -------------
-    // set bus error
-    if (sberror_valid_i) begin
-      sbcs_d[14:12] = sberror_i; // set system bus error type
-    end
-    // update read data
-    if (sbdata_valid_i) begin
-      sbdata_d = {32'b0, sbdata_i};
-    end
+    
 
     // dmcontrol
     // not support action on single hart
@@ -630,7 +532,7 @@ module dm_csrs #(
     end
     // static values for dcsr
     sbcs_d[31:29]    = 3'd1;                    // sbcersion
-    sbcs_d[21]       = sbbusy_i;                // sbbusy 
+    sbcs_d[21]       = 1'b0;                // sbbusy 
     sbcs_d[11:5]     = BusWidth; // sbasize
     // check the SBA width support
     sbcs_d[4]        = BusWidth >= 32'd128;

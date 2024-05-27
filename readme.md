@@ -218,29 +218,38 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
     3. Write breakpoint address to tdata2(tmatch_value).
     4. If decode_stage's PC is equal to any element in tmatch_value(which is a array), debug_controller will raise a debug_halt_req to halt the core.
 
-## Demo Example
-- construct openOCD connection:<br>
-If there is no error during openOCD connection, the terminal will output as below.
+## Reference
+- [openhwgroup/cv32e40p](https://github.com/openhwgroup/cv32e40p)
+- [rocket-chip](https://github.com/chipsalliance/rocket-chip/tree/master)
+- [lowRISC/ibex-demo-system](https://github.com/lowRISC/ibex-demo-system/tree/main)
+- [lowRISC/ibex-core](https://github.com/lowRISC/ibex/tree/master)
+- [riscv-openOCD](https://github.com/riscv-collab/riscv-openocd)
+- [pulp/riscv-dbg](https://github.com/pulp-platform/riscv-dbg/blob/master/doc/debug-system.md)
+- [riscv-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain)
+- [Nios-debug-module](https://www.intel.com/content/www/us/en/docs/programmable/683632/21-4-21-1-1/risc-v-based-debug-module.html)
+- [ithome/introduction_to_RISCV_debugger](https://ithelp.ithome.com.tw/users/20107327/ironman/1359)(chinese)
+- [openhwgroup/cva6](https://github.com/openhwgroup/cva6)
+
+<!-- ## Demo Example
+- Construct openOCD connection:<br>
+openOCD will open port 3333 for gdb to connect.
 ```
-bash:~/project/project.srcs/sources_1/demo$ openocd -f arty-a7-openocd-cfg.tcl 
-Open On-Chip Debugger 0.12.0+dev-03677-g9f4c0ba1c (2024-02-22-21:57)
-Licensed under GNU GPL v2
-For bug reports, read
-        http://openocd.org/doc/doxygen/bugs.html
-force hard breakpoints
-Info : ftdi: if you experience problems at higher adapter clocks, try the command "ftdi tdo_sample_edge falling"
-Info : clock speed 10000 kHz
-Info : JTAG tap: riscv.cpu tap/device found: 0x13631093 (mfg: 0x049 (Xilinx), part: 0x3631, ver: 0x1)
-Info : [riscv.cpu] datacount=2 progbufsize=8
-Info : [riscv.cpu] Vector support with vlenb=0
-Info : [riscv.cpu] S?aia detected with IMSIC
-Info : [riscv.cpu] Examined RISC-V core
-Info : [riscv.cpu]  XLEN=32, misa=0x0
-[riscv.cpu] Target successfully examined.
-Info : [riscv.cpu] Examination succeed
-Info : starting gdb server for riscv.cpu on 3333
-Info : Listening on port 3333 for gdb connections
-riscv.cpu halted due to undefined.
-Info : Listening on port 6666 for tcl connections
-Info : Listening on port 4444 for telnet connections
+User@bash:~/RISCV-debug-module-for-Aquila-Core/demo$ openocd -f arty-a7-openocd-cfg.tcl
 ```
+- Run gdb with Aquila's bootcode (uartboot.elf) in another terminal:<br>
+    1. Attach to port 3333 (the core had halted by openOCD)
+    ```
+    (gdb) tar ext:3333 
+    ```
+    2. Now you can control the core via GDB command.
+    ```
+    (gdb) c                #continue
+    (gdb) ctrl+c           #halt
+    (gdb) si               #step one instruction
+    (gdb) r                #rerun the bootcode
+    (gdb) mon halt         #this is external openOCD command to halt the core after reset, since halt_on_reset feature is not supported in current design, you have to halt the core manually.
+    (gdb) load dhry.elf    #load .elf file into memory
+    (gdb) add-symbol-file dhry.elf #add symbolfile for debug
+    (gdb) b func           #set breakpoint on func
+    (gdb) b *0x124         #set breakpoint on instrction memory address 0x124
+    ``` -->

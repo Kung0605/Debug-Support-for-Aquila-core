@@ -1,6 +1,3 @@
-# Copyright lowRISC contributors.
-# Licensed under the Apache License, Version 2.0, see LICENSE for details.
-# SPDX-License-Identifier: Apache-2.0
 
 adapter driver ftdi
 transport select jtag
@@ -11,13 +8,7 @@ ftdi channel 0
 ftdi layout_init 0x0088 0x008b
 reset_config none
 
-# Configure JTAG chain and the target processor
 set _CHIPNAME riscv
-
-# Configure JTAG expected ID
-# arty-a7-35t
-# set _EXPECTED_ID 0x0362D093 
-# arty-a7-100t
 set _EXPECTED_ID 0x13631093 
 
 jtag newtap $_CHIPNAME cpu -irlen 6 -expected-id $_EXPECTED_ID -ignore-version

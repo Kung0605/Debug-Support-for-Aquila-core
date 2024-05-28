@@ -1,19 +1,18 @@
 module dmi_jtag_tap (
-  // control logic of JTAG-protocol
+  // signals to dmi_jtag to control jtag protocol
   output         tck_o,
   output         dmi_clear_o,
   output         update_o,
   output         capture_o,
   output         shift_o,
   output         tdi_o,
-  // Access debug transport module's CSRs
+  // access dtmcs
   output         dtmcs_select_o,
   input          dtmcs_tdo_i,
-  // Access debug module's CSRs
+  // access other registers in debug module
   output         dmi_select_o,
   input          dmi_tdo_i
 );
-
   BSCANE2 #(
     .JTAG_CHAIN (3)
   ) i_tap_dtmcs (
@@ -29,7 +28,6 @@ module dmi_jtag_tap (
     .TDO (dtmcs_tdo_i),
     .UPDATE (update_o)
   );
-
   BSCANE2 #(
     .JTAG_CHAIN (4)
   ) i_tap_dmi (
@@ -45,5 +43,4 @@ module dmi_jtag_tap (
     .TDO (dmi_tdo_i),
     .UPDATE ()
   );
-
 endmodule

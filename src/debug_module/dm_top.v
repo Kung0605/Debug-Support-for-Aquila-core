@@ -1,24 +1,18 @@
 module dm_top #(
-  parameter                     NrHarts          = 1,
   parameter                     BusWidth         = 32,
-  parameter                     DmBaseAddress    = 'h1000, // default to non-zero page
-  // Bitmask to select physically available harts for systems
-  // that don't use hart numbers in a contiguous fashion.
-  parameter                     SelectableHarts  = 1,
-  // toggle new behavior to drive master_be_o during a read
-  parameter                     ReadByteEnable   = 1
+  parameter                     DmBaseAddress    = 'h1000
 ) (
-  input                         clk_i,       // clock
-  // asynchronous reset active low, connect PoR here, not the system reset
-  input                         rst_ni,
-  input                         testmode_i,
-  output                        ndmreset_o,  // non-debug module reset
-  output                        dmactive_o,  // debug module is active
-  output       [NrHarts-1:0]    debug_req_o, // async debug request
-  // communicate whether the hart is unavailable (e.g.: power down)
-  input        [NrHarts-1:0]    unavailable_i,
-
-  input                         slave_req_i,
+  // system signals
+  input                         clk_i,        // system clock
+  input                         rst_ni,       // asynchronous reset
+  // debug signals
+  input                         testmode_i,   // Not used
+  output                        ndmreset_o,   // non-debug module reset
+  output                        dmactive_o,   // debug module is active
+  output                        debug_req_o,  // async debug request
+  input                         unavailable_i,// core is unavailalble
+  // memory interface
+  input                         slave_req_i,  
   input                         slave_we_i,
   input        [BusWidth-1:0]   slave_addr_i,
   input        [BusWidth/8-1:0] slave_be_i,
@@ -28,35 +22,34 @@ module dm_top #(
 
   localparam                        ProgBufSize = 8;
   localparam                        DataCount   = 2;
-  // Debug CSRs
-  wire  [NrHarts-1:0]               halted;
-  // logic [NrHarts-1:0]               running;
-  wire  [NrHarts-1:0]               resumeack;
-  wire  [NrHarts-1:0]               haltreq;
-  wire  [NrHarts-1:0]               resumereq;
-  wire                              clear_resumeack;
-  wire                              cmd_valid;
-  wire  [31:0]                      cmd;
+  // debug CSRs
+  // core control and status 
+  wire                              halted;         // core is halted
+  wire                              resumeack;      // core acked the resume request
+  wire                              haltreq;        // halt request to core
+  wire                              resumereq;      // resume request to core
+  wire                              clear_resumeack;// ask core to clear resume request
+  // abstract command control and status
+  wire                              cmd_valid;      // command is valid
+  wire  [31:0]                      cmd;            // abstract command
+  wire                              cmderror_valid; // error occur in command 
+  wire  [2:0]                       cmderror;       // kind of error
+  wire                              cmdbusy;        // busy executing abstract command
+  // memory signals
+  wire  [ProgBufSize*32-1:0]        progbuf;        // program buffer
+  wire  [DataCount*32-1:0]          data_csrs_mem;  // data from debug CSRs
+  wire  [DataCount*32-1:0]          data_mem_csrs;  // data from debug memory
+  wire                              data_valid;     // data is valid to read
+  // control signals
+  wire                              ndmreset;       // non-debug module reset
+  wire  [19:0]                      hartsel;        // core selection (can only be 0)
 
-  wire                              cmderror_valid;
-  wire  [2:0]                       cmderror;
-  wire                              cmdbusy;
-  wire  [ProgBufSize*32-1:0]        progbuf;
-  wire  [DataCount*32-1:0]          data_csrs_mem;
-  wire  [DataCount*32-1:0]          data_mem_csrs;
-  wire                              data_valid;
-  wire                              ndmreset;
-  wire  [19:0]                      hartsel;
-
-  wire                              dmi_rst_n;
-
+  wire                              dmi_rst_n;      // debug module interface reset (active low)
+  // debug request
   wire                              dmi_req_valid;
   wire                              dmi_req_ready;
   wire  [40:0]                      dmi_req;
-  // reg                               dmi_req_valid;
-  // wire                              dmi_req_ready;
-  // reg   [40:0]                      dmi_req;
-
+  // debug response
   wire                              dmi_resp_valid;
   wire                              dmi_resp_ready;
   wire  [33:0]                      dmi_resp;
@@ -64,9 +57,7 @@ module dm_top #(
   assign ndmreset_o = ndmreset;
 
   dm_csrs #(
-    .NrHarts(NrHarts),
-    .BusWidth(BusWidth),
-    .SelectableHarts(SelectableHarts)
+    .BusWidth(BusWidth)
   ) i_dm_csrs (
     .clk_i                   ( clk_i                 ),
     .rst_ni                  ( rst_ni                ),
@@ -99,9 +90,7 @@ module dm_top #(
   );
 
   dm_mem #(
-    .NrHarts(NrHarts),
     .BusWidth(BusWidth),
-    .SelectableHarts(SelectableHarts),
     .DmBaseAddress(DmBaseAddress)
   ) i_dm_mem (
     .clk_i                   ( clk_i                 ),
@@ -146,24 +135,4 @@ module dm_top #(
     .dmi_resp_valid_i       ( dmi_resp_valid    ),
     .dmi_resp_ready_o       ( dmi_resp_ready    )
   );
-  // initial begin 
-  // #0
-  // dmi_req_valid = 0;
-  // dmi_req = 0;
-  // #250
-  // dmi_req_valid = 1;
-  // dmi_req = {8'h10, 2'h2, 32'h80000001};
-  // #50 
-  // dmi_req_valid = 0;
-  // #500
-  // dmi_req_valid = 1;
-  // dmi_req = {8'h10, 2'h2, 32'h40000001};
-  // #50
-  // dmi_req_valid = 0;
-  // #500
-  // dmi_req_valid = 1;
-  // dmi_req = {8'h10, 2'h2, 32'h40000001};
-  // #50
-  // dmi_req_valid = 0;
-  // end
 endmodule

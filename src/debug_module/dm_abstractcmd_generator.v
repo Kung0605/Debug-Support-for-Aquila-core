@@ -1,7 +1,7 @@
 module dm_abstractcmd_generator(
-    input  [31:0]     cmd_i,
-    output [7:0]      cmd_cmdtype_o,
-    output reg [63:0] abstract_cmd0_o,
+    input  [31:0]     cmd_i,            // abstract command
+    output [7:0]      cmd_cmdtype_o,    // cmd type(can only be AccessRegister)
+    output reg [63:0] abstract_cmd0_o,  
     output reg [63:0] abstract_cmd1_o,
     output reg [63:0] abstract_cmd2_o,
     output reg [63:0] abstract_cmd3_o,
@@ -10,8 +10,8 @@ module dm_abstractcmd_generator(
     output reg [63:0] abstract_cmd6_o,
     output reg [63:0] abstract_cmd7_o,
     output reg        unsupported_command_o,
-    output            transfer_o,
-    output            postexec_o
+    output            transfer_o,       // run abstract command
+    output            postexec_o        // run program buffer
 );
 
     function [31:0] jalr (input [4:0]  rd, input [4:0]  rs1, input [11:0] offset);
@@ -66,7 +66,7 @@ module dm_abstractcmd_generator(
     localparam  LoadBaseAddr   = 5'd10;
     localparam  DataAddr       = 32'h380;
     reg  [63:0] abstract_cmd [0:7];
-    // Abstract Command Access Register
+
     wire  [31:0] ac_ar;
     wire  [23:0] cmd_control;
     wire  [ 7:0] cmd_cmdtype;
@@ -80,16 +80,15 @@ module dm_abstractcmd_generator(
     
     assign cmd_control = cmd_i[23: 0];
     assign cmd_cmdtype = cmd_i[31:24];
-    assign ac_ar       = cmd_control;
-    assign aarsize     = ac_ar[22:20];
-    assign regno       = ac_ar[15:0];
-    assign aarpostincrement = ac_ar[19];
-    assign transfer    = ac_ar[17];
+    assign ac_ar       = cmd_control;    // abstract command access registers
+    assign aarsize     = ac_ar[22:20]; 
+    assign regno       = ac_ar[15:0];    // register number
+    assign aarpostincrement = ac_ar[19]; // increment index
+    assign transfer    = ac_ar[17]; 
     assign postexec    = ac_ar[18];
-    assign write       = ac_ar[16];
+    assign write       = ac_ar[16];      // write enable
     
     always @(*) begin
-
         // default command
         unsupported_command = 1'b0;
         abstract_cmd[0][31:0]  = illegal;

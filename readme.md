@@ -227,15 +227,18 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
 - [pulp/riscv-dbg](https://github.com/pulp-platform/riscv-dbg/blob/master/doc/debug-system.md)
 - [riscv-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain)
 - [Nios-debug-module](https://www.intel.com/content/www/us/en/docs/programmable/683632/21-4-21-1-1/risc-v-based-debug-module.html)
-- [ithome/introduction_to_RISCV_debugger](https://ithelp.ithome.com.tw/users/20107327/ironman/1359)(chinese)
 - [openhwgroup/cva6](https://github.com/openhwgroup/cva6)
 
-<!-- ## Demo Example
+## Demo Example
 - Construct openOCD connection:<br>
 openOCD will open port 3333 for gdb to connect.
-```
-User@bash:~/RISCV-debug-module-for-Aquila-Core/demo$ openocd -f arty-a7-openocd-cfg.tcl
-```
+    ```
+    User@bash:~/RISCV-debug-module-for-Aquila-Core/demo$ openocd -f arty-a7-openocd-cfg.tcl
+    ```
+    Example openOCD configuration script:<br>
+    ```
+    
+    ```
 - Run gdb with Aquila's bootcode (uartboot.elf) in another terminal:<br>
     1. Attach to port 3333 (the core had halted by openOCD)
     ```
@@ -246,10 +249,10 @@ User@bash:~/RISCV-debug-module-for-Aquila-Core/demo$ openocd -f arty-a7-openocd-
     (gdb) c                #continue
     (gdb) ctrl+c           #halt
     (gdb) si               #step one instruction
-    (gdb) r                #rerun the bootcode
-    (gdb) mon halt         #this is external openOCD command to halt the core after reset, since halt_on_reset feature is not supported in current design, you have to halt the core manually.
     (gdb) load dhry.elf    #load .elf file into memory
-    (gdb) add-symbol-file dhry.elf #add symbolfile for debug
     (gdb) b func           #set breakpoint on func
     (gdb) b *0x124         #set breakpoint on instrction memory address 0x124
-    ``` -->
+    ```
+    > Note:<br>
+    My implmentation currently not support "halt on reset" feature, that is, if user reset the core(Ex: External reset button on FPGA or "run" command in gdb), they have to halt the core manually.<br>
+    (gdb) mon halt

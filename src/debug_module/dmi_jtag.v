@@ -1,59 +1,55 @@
 module dmi_jtag (
-  input           clk_i,      // DMI Clock
-  input           rst_ni,     // Asynchronous reset active low
-  input           testmode_i,
-
-  // active-low glitch free reset signal. Is asserted for one dmi clock cycle
-  // (clk_i) whenever the dmi_jtag is reset (POR or functional reset).
-  output          dmi_rst_no,
-  output [40:0]   dmi_req_o,
-  output          dmi_req_valid_o,
-  input           dmi_req_ready_i,
-
-  input  [33:0]   dmi_resp_i,
-  output          dmi_resp_ready_o,
-  input           dmi_resp_valid_i
-);
+    input           clk_i,          // DMI Clock
+    input           rst_ni,         // Asynchronous reset active low
+    input           testmode_i,     // Not used
+    output          dmi_rst_no,     // indicate debug module interface has reset
+    // debug request to debug CSRs
+    output [40:0]   dmi_req_o,
+    output          dmi_req_valid_o,
+    input           dmi_req_ready_i,
+    // debug response from debug CSRs
+    input  [33:0]   dmi_resp_i,
+    output          dmi_resp_ready_o,
+    input           dmi_resp_valid_i
+  );
+  // Debug transport module option
   localparam  DTM_NOP   = 0,
               DTM_READ  = 1,
               DTM_WRITE = 2;
+  // Debug transport module status
   localparam  DTM_SUCCESS = 0,
               DTM_ERR     = 2,
               DTM_BUSY    = 3;
-  localparam  DMINoError       = 2'h0, 
+  // Debug module interface status
+  localparam  DMINoError       = 2'h0,
               DMIReservedError = 2'h1,
-              DMIOPFailed      = 2'h2, 
+              DMIOPFailed      = 2'h2,
               DMIBusy          = 2'h3;
   reg [1:0] error_d, error_q;
 
-  wire tck;
+  wire dmi_clear;      // Functional (warm) reset of the entire DMI
   wire jtag_dmi_clear; // Synchronous reset of DMI triggered by TestLogicReset in
-                        // jtag TAP
-  wire dmi_clear; // Functional (warm) reset of the entire DMI
+  // jtag TAP
+
+  // JTAG control signals
+  wire tck;
   wire update;
   wire capture;
   wire shift;
   wire tdi;
+  wire trst_n;
 
   wire dtmcs_select;
-
-  wire trst_n;
+  // Debug transport module CSRs
   reg [31:0] dtmcs_d, dtmcs_q;
   assign dmi_clear = jtag_dmi_clear || (dtmcs_select && update && dtmcs_q[17]/*hardreset*/);
-  assign trst_n = 1'b1; // force to not reset DTM  
-  // -------------------------------
-  // Debug Module Control and Status
-  // -------------------------------
-
+  assign trst_n = 1'b1; // force to not reset DTM
 
   always @(*) begin
-    dtmcs_d = dtmcs_q;
+    dtmcs_d = dtmcs_q;            // default assignment
     if (capture) begin
       if (dtmcs_select) begin
-        dtmcs_d[31:18] = 0;
-        dtmcs_d[17]    = 0;
-        dtmcs_d[16]    = 0;
-        dtmcs_d[15]    = 0;
+        dtmcs_d[31:15] = 0;
         dtmcs_d[14:12] = 3'd1;    // idle: 1: Enter Run-Test/Idle and leave it immediately
         dtmcs_d[11:10] = error_q; // dmistat: 0: No error, 2: Op failed, 3: too fast
         dtmcs_d[9:4]   = 6'd7;    // abits: The size of address in dmi
@@ -62,8 +58,8 @@ module dmi_jtag (
     end
 
     if (shift) begin
-      if (dtmcs_select) begin 
-          dtmcs_d  = {tdi, dtmcs_q[31:1]};
+      if (dtmcs_select) begin
+        dtmcs_d  = {tdi, dtmcs_q[31:1]};
       end
     end
   end
@@ -71,57 +67,55 @@ module dmi_jtag (
   always @(posedge tck or negedge trst_n) begin
     if (!trst_n) begin
       dtmcs_q <= 0;
-    end else begin
+    end
+    else begin
       dtmcs_q <= dtmcs_d;
     end
   end
 
-  // ----------------------------
-  // DMI (Debug Module Interface)
-  // ----------------------------
-
+  // Access debug module CSRs
   wire          dmi_select;
   wire          dmi_tdo;
-
+  // debug request
   wire [40:0]   dmi_req;
   wire          dmi_req_ready;
   reg           dmi_req_valid;
-
+  // debug response
   wire [33:0]   dmi_resp;
   wire          dmi_resp_valid;
   wire          dmi_resp_ready;
 
-  // typedef struct packed {
-  //   logic [6:0]  address;
-  //   logic [31:0] data;
-  //   logic [1:0]  op;
-  // } dmi_t;
+  // debug module interface state
   localparam  Idle           = 0,
               Read           = 1,
               WaitReadValid  = 2,
               Write          = 3,
               WaitWriteValid = 4;
+
   reg [2:0] state_d, state_q;
 
+  // data register
   reg   [40:0] dr_d, dr_q;
   reg   [6:0]  address_d, address_q;
   reg   [31:0] data_d, data_q;
-
+  // actual debug request sent to host debugger
   wire  [40:0] dmi;
   assign dmi            = dr_q;
   assign dmi_req[40:34] = address_q;
   assign dmi_req[31:0]  = data_q;
   assign dmi_req[33:32] = (state_q == Write) ? DTM_WRITE : DTM_READ;
-  // We will always be ready to accept the data we requested.
+  // can always read data which is requested
   assign dmi_resp_ready = 1'b1;
-
+  // debug module interface error signals
   reg    error_dmi_busy;
   reg    error_dmi_op_failed;
 
+  // JTAG control logic
   always @(*) begin
+    // default assignments
     error_dmi_busy = 1'b0;
     error_dmi_op_failed = 1'b0;
-    // default assignments
+    
     state_d   = state_q;
     address_d = address_q;
     data_d    = data_q;
@@ -129,29 +123,34 @@ module dmi_jtag (
 
     dmi_req_valid = 1'b0;
 
+    // reset debug module interface
     if (dmi_clear) begin
       state_d   = Idle;
       data_d    = 0;
       error_d   = DMINoError;
       address_d = 0;
-    end else begin
+    end
+    else begin
       case (state_q)
         Idle: begin
-          // make sure that no error is sticky
+          // check if ther is an error
           if (dmi_select && update && (error_q == DMINoError)) begin
-            // save address and value
+            // assign request address and data
             address_d = dmi[40:34];
             data_d = dmi[33:2];
             if (dmi[1:0] == DTM_READ) begin
+              // operation is read 
               state_d = Read;
-            end else if (dmi[1:0] == DTM_WRITE) begin
+            end
+            else if (dmi[1:0] == DTM_WRITE) begin
+              // operation is write
               state_d = Write;
             end
-            // else this is a nop and we can stay here
           end
         end
 
         Read: begin
+          // debug request is valid to read
           dmi_req_valid = 1'b1;
           if (dmi_req_ready) begin
             state_d = WaitReadValid;
@@ -159,17 +158,20 @@ module dmi_jtag (
         end
 
         WaitReadValid: begin
-          // load data into register and shift out
           if (dmi_resp_valid) begin
+            // debug response is valid to return
             case (dmi_resp[1:0])
               DTM_SUCCESS: begin
+                // request cuccess
                 data_d = dmi_resp[33:2];
               end
               DTM_ERR: begin
+                // error occur in request
                 data_d = 32'hDEAD_BEEF;
                 error_dmi_op_failed = 1'b1;
               end
               DTM_BUSY: begin
+                // debug module is busy
                 data_d = 32'hB051_B051;
                 error_dmi_busy = 1'b1;
               end
@@ -182,55 +184,51 @@ module dmi_jtag (
         end
 
         Write: begin
+          // debug request is valid to read
           dmi_req_valid = 1'b1;
-          // request sent, wait for response before going back to idle
           if (dmi_req_ready) begin
             state_d = WaitWriteValid;
           end
         end
 
         WaitWriteValid: begin
-          // got a valid answer go back to idle
+          // debug response is valid to return
           if (dmi_resp_valid) begin
             case (dmi_resp[1:0])
-              DTM_ERR: error_dmi_op_failed = 1'b1;
-              DTM_BUSY: error_dmi_busy = 1'b1;
-              default: ;
+              DTM_ERR: 
+                error_dmi_op_failed = 1'b1; // error occur
+              DTM_BUSY:
+                error_dmi_busy = 1'b1;      // debug module is busy
+              default:
+                ;                           // avoid error
             endcase
             state_d = Idle;
           end
         end
 
-        default: begin
-          // just wait for idle here
+        default: begin 
           if (dmi_resp_valid) begin
+            // wait for return to Idle
             state_d = Idle;
           end
         end
       endcase
-
-      // update means we got another request but we didn't finish
-      // the one in progress, this state is sticky
+      // receive a new debug request when state is not Idle
       if (update && state_q != Idle) begin
         error_dmi_busy = 1'b1;
       end
-
-      // if capture goes high while we are in the read state
-      // or in the corresponding wait state we are not giving back a valid word
-      // -> throw an error
+      // capture go up in incorrect state -> error
       if (capture && ((state_q == Read) || (state_q ==  WaitReadValid))) begin
         error_dmi_busy = 1'b1;
       end
-
+      // save error state
       if (error_dmi_busy && error_q == DMINoError) begin
         error_d = DMIBusy;
       end
-
       if (error_dmi_op_failed && error_q == DMINoError) begin
         error_d = DMIOPFailed;
       end
-
-      // clear sticky error flag
+      // if dmireset -> clear error state
       if (update && dtmcs_q[16]/*dmireset*/ && dtmcs_select) begin
         error_d = DMINoError;
       end
@@ -239,18 +237,22 @@ module dmi_jtag (
 
   // shift register
   assign dmi_tdo = dr_q[0];
-
+  // data register assignment
   always @(*) begin
     dr_d    = dr_q;
     if (dmi_clear) begin
+      // reset -> clear data registers
       dr_d = 0;
-    end else begin
+    end
+    else begin
       if (capture) begin
         if (dmi_select) begin
           if (error_q == DMINoError && !error_dmi_busy) begin
+            // success
             dr_d = {address_q, data_q, DMINoError};
-            // DMI was busy, report an error
-          end else if (error_q == DMIBusy || error_dmi_busy) begin
+          end
+          else if (error_q == DMIBusy || error_dmi_busy) begin
+            // dmi is busy
             dr_d = {address_q, data_q, DMIBusy};
           end
         end
@@ -258,12 +260,14 @@ module dmi_jtag (
 
       if (shift) begin
         if (dmi_select) begin
+          // shift registers
           dr_d = {tdi, dr_q[40:1]};
         end
       end
     end
   end
 
+  // sequential logic
   always @(posedge tck or negedge trst_n) begin
     if (!trst_n) begin
       dr_q      <= 0;
@@ -271,7 +275,8 @@ module dmi_jtag (
       address_q <= 0;
       data_q    <= 0;
       error_q   <= DMINoError;
-    end else begin
+    end
+    else begin
       dr_q      <= dr_d;
       state_q   <= state_d;
       address_q <= address_d;
@@ -285,42 +290,42 @@ module dmi_jtag (
   // ---------
 
   dmi_jtag_tap i_dmi_jtag_tap (
-    .tck_o          ( tck              ),
-    .dmi_clear_o    ( jtag_dmi_clear   ),
-    .update_o       ( update           ),
-    .capture_o      ( capture          ),
-    .shift_o        ( shift            ),
-    .tdi_o          ( tdi              ),
-    .dtmcs_select_o ( dtmcs_select     ),
-    .dtmcs_tdo_i    ( dtmcs_q[0]       ),
-    .dmi_select_o   ( dmi_select       ),
-    .dmi_tdo_i      ( dmi_tdo          )
-  );
+                 .tck_o          ( tck              ),
+                 .dmi_clear_o    ( jtag_dmi_clear   ),
+                 .update_o       ( update           ),
+                 .capture_o      ( capture          ),
+                 .shift_o        ( shift            ),
+                 .tdi_o          ( tdi              ),
+                 .dtmcs_select_o ( dtmcs_select     ),
+                 .dtmcs_tdo_i    ( dtmcs_q[0]       ),
+                 .dmi_select_o   ( dmi_select       ),
+                 .dmi_tdo_i      ( dmi_tdo          )
+               );
 
   // ---------
   // CDC
   // ---------
   dmi_cdc i_dmi_cdc (
-    // JTAG side (master side)
-    .tck_i                ( tck              ),
-    .trst_ni              ( trst_n           ),
-    .jtag_dmi_cdc_clear_i ( dmi_clear        ),
-    .jtag_dmi_req_i       ( dmi_req          ),
-    .jtag_dmi_ready_o     ( dmi_req_ready    ),
-    .jtag_dmi_valid_i     ( dmi_req_valid    ),
-    .jtag_dmi_resp_o      ( dmi_resp         ),
-    .jtag_dmi_valid_o     ( dmi_resp_valid   ),
-    .jtag_dmi_ready_i     ( dmi_resp_ready   ),
-    // core side
-    .clk_i                ( clk_i            ),
-    .rst_ni               ( rst_ni           ),
-    .core_dmi_rst_no      ( dmi_rst_no       ),
-    .core_dmi_req_o       ( dmi_req_o        ),
-    .core_dmi_valid_o     ( dmi_req_valid_o  ),
-    .core_dmi_ready_i     ( dmi_req_ready_i  ),
-    .core_dmi_resp_i      ( dmi_resp_i       ),
-    .core_dmi_ready_o     ( dmi_resp_ready_o ),
-    .core_dmi_valid_i     ( dmi_resp_valid_i )
-  );
+            // JTAG side (master side)
+            .tck_i                ( tck              ),
+            .trst_ni              ( trst_n           ),
+            .jtag_dmi_cdc_clear_i ( dmi_clear        ),
+            .jtag_dmi_req_i       ( dmi_req          ),
+            .jtag_dmi_ready_o     ( dmi_req_ready    ),
+            .jtag_dmi_valid_i     ( dmi_req_valid    ),
+            .jtag_dmi_resp_o      ( dmi_resp         ),
+            .jtag_dmi_valid_o     ( dmi_resp_valid   ),
+            .jtag_dmi_ready_i     ( dmi_resp_ready   ),
+            // core side
+            .clk_i                ( clk_i            ),
+            .rst_ni               ( rst_ni           ),
+            .core_dmi_rst_no      ( dmi_rst_no       ),
+            .core_dmi_req_o       ( dmi_req_o        ),
+            .core_dmi_valid_o     ( dmi_req_valid_o  ),
+            .core_dmi_ready_i     ( dmi_req_ready_i  ),
+            .core_dmi_resp_i      ( dmi_resp_i       ),
+            .core_dmi_ready_o     ( dmi_resp_ready_o ),
+            .core_dmi_valid_i     ( dmi_resp_valid_i )
+          );
 
 endmodule

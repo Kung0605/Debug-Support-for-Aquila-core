@@ -339,7 +339,6 @@ end
 
 // dm_top
 dm_top # (
-    .NrHarts              ( 1                 ),
     .BusWidth             ( XLEN              ),
     .DmBaseAddress        ( `DmBaseAddress    ),
     .SelectableHarts      ( 1'b1              )

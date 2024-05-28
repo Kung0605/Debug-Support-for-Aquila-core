@@ -91,7 +91,6 @@ This is a 16kB memory interface of Debug Module, the functionality of this modul
     - Program Buffer:<br>User can write arbitrary instruction into Program Buffer to force the core to do anything.
     - Abstract Command:<br>In order to access registers, the debug module will generate series of instruction to get the register's value and write them into Data registers.
 - **Memory mapping**:<details open="true"><summary>Expand all</summary>
-
     **Address** | **Description** 
     ------------|-----------------
     0x000-0x0ff | unused
@@ -109,7 +108,7 @@ This is a 16kB memory interface of Debug Module, the functionality of this modul
 </details>
 
 - State transition diagram<br>
-![State transition for dm_mem](./doc/FSM_dm_mem.svg)
+![State transition for dm_mem](./doc/FSM_dm_mem_0.svg)
 ### Debug Module Jtag Interface (dmi_jtag)
 With regard to construct communication between host PC and debug module, we choose JTAG as our communication protocal. The main purpose of this module is receiving JTAG signal from host PC to generate debug request(dmi_req), and receiving dmi_resp from debug module and translating it into JTAG signal for transmission.
 
@@ -133,7 +132,8 @@ With regard to construct communication between host PC and debug module, we choo
       Since Xilinx FPGA adopt USB-JTAG as a bridge for sending bitstream and gathering waveform captured by ILA(Integrated Logic Anylyzer), choosing USB-JTAG can prevent our design from adding extra cable.
       ![JTAG FSM diagram](./doc/JTAG-TAP-Controller.png)
     - JTAG-TAP(JTAG-Test Access Port):<br>
-      Xilinx provide [BSCANE2](https://docs.amd.com/r/2021.1-English/ug953-vivado-7series-libraries/BSCANE2) primitive for user to access USB-JTAG directly, they will form a daisy-chain if there are more than one BSCANE2 are instantiated. We use two BSCANE2 primative to avoid the higher complexity of using tunnel mode as discussed in [this issue](https://github.com/openhwgroup/core-v-mcu/issues/117#issuecomment-826280883).
+      Xilinx provide [BSCANE2](https://docs.amd.com/r/2021.1-English/ug953-vivado-7series-libraries/BSCANE2) primitive for user to access USB-JTAG directly, they will form a daisy-chain if there are more than one BSCANE2 are instantiated. We use two BSCANE2 primative to avoid the higher complexity of using tunnel mode as discussed in [this issue](https://github.com/openhwgroup/core-v-mcu/issues/117#issuecomment-826280883)
+      ![dmi_jtag_state](./doc/FSM_dmi_jtag_0.svg)
     - Debug Transport Module CSR(dtmcs):<br>
       A register contain the current state information about DTM 
 - **Clock-Domain-Crossing module**:<br>
@@ -237,7 +237,55 @@ openOCD will open port 3333 for gdb to connect.
     ```
     Example openOCD configuration script:<br>
     ```
-    
+    # Important: openOCD will connect to the same USB port as vivado, in order to run openOCD, 
+    # user should close vivado's Hardware Manager first.
+    adapter driver ftdi                                     
+    transport select jtag                                      
+
+    # specify the USB device name
+    ftdi device_desc "Digilent USB Device"
+    # vid and pid are 
+    ftdi vid_pid 0x0403 0x6010
+    # ftdi channel 1 is unused
+    ftdi channel 0
+    ftdi layout_init 0x0088 0x008b
+    reset_config none
+
+    set _CHIPNAME riscv
+    # target board ID is given by Xilinx arty-a7-100t
+    set _EXPECTED_ID 0x13631093 
+
+    # create new jtag-tap(JTAG Test-Access-Port)
+    jtag newtap $_CHIPNAME cpu -irlen 6 -expected-id $_EXPECTED_ID -ignore-version
+    set _TARGETNAME $_CHIPNAME.cpu
+    target create $_TARGETNAME riscv -chain-position $_TARGETNAME
+
+    # Set the IR address for different registers
+    # this is only required while using Xilinx BSCANE2 primitive for jtag-tap
+    riscv set_ir idcode 0x09
+    riscv set_ir dtmcs 0x22
+    riscv set_ir dmi 0x23
+
+    # select jtag transmission rate
+    adapter speed 10000
+
+    # set the priority for different access method(only progbuf is supported currently)
+    riscv set_mem_access progbuf sysbus abstract
+    riscv set_command_timeout_sec 2
+
+    # error handling
+    gdb_report_data_abort enable
+    gdb_report_register_access_error enable
+
+    # force every breakpoint to be hardware-assisted breakpoint
+    gdb_breakpoint_override hard
+
+    reset_config none
+
+    # initialization
+    init
+    # halt the core
+    halt
     ```
 - Run gdb with Aquila's bootcode (uartboot.elf) in another terminal:<br>
     1. Attach to port 3333 (the core had halted by openOCD)

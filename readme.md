@@ -11,7 +11,7 @@ This study implement a DM partially compatible with [riscv-debug-release 0.13.2]
 	- hardware breakpoint
 - HW requirement 
     - can be synthesized on Xilinx arty-a7100t
-    - connected to host PC via USB with the help of Xilinx BSCANE2 primitive, no extra jtag cable is required
+    - connected to host PC via USB with the help of [Xilinx BSCANE2 primitive](https://docs.amd.com/r/2021.1-English/ug953-vivado-7series-libraries/BSCANE2), no extra jtag cable is required
 - SW requirement
     - use [openocd-riscv](https://github.com/riscv-collab/riscv-openocd) to connect debug module and host PC
     - build [riscv-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain/tree/master) and debug with gdb
@@ -21,10 +21,9 @@ This study implement a DM partially compatible with [riscv-debug-release 0.13.2]
 -------------------------------------- | --------------------------------------------------------------------------------------
 Hardware trigger        | Support up to 32 breakpoints, while watchpoint are not implemented currently.
 System Bus Access (SBA)  | Not supported at this time.
-User Authentication | Not supported at this time.
-Program buffer for hart to run any instruction | Supported.
+Program buffer for core to run any instruction | Supported.
 Multiple hart support | Not supported at this time.
-Abstract Command | Support to access GPR.
+Abstract Command | Support to access GPR. other type can be done by program buffer
 
 ## System overview
 ![block diagram of debug module](./doc/Block_diagram.png)
@@ -85,11 +84,12 @@ There are several register in the debug module, host can write to these register
 ### Debug Memory (dm_mem)
 
 This is a 16kB memory interface of Debug Module, the functionality of this module are listed below:
-- **Debug Rom** (For execution-based deubg):<br>In reality, halting a core by stopping the clock is difficult to implement, so it is not a good idea to do that in our design. Instead, when a halt request is comming, the PC will be set to the predefined *halt address*, which contains a loop consists of a set of instructions. 
+- **Debug Rom** (For execution-based debug):<br>In reality, halting a core by stopping the clock is difficult to implement, so it is not a good idea to do that in our design. Instead, when a halt request is comming, the PC will be set to the predefined *halt address*, which contains a loop consists of a set of instructions. 
 > The content of Debug Rom are reference from [Rocket-Chip's debug rom](https://github.com/chipsalliance/rocket-chip/blob/master/scripts/debug_rom/debug_rom_nonzero.S)
 - **Debug Ram**:
     - Program Buffer:<br>User can write arbitrary instruction into Program Buffer to force the core to do anything.
     - Abstract Command:<br>In order to access registers, the debug module will generate series of instruction to get the register's value and write them into Data registers.
+    - Data:<br>User can store Data in these blocks and load Data to core, and core can also return requested data by save them to these blocks.
 - **Memory mapping**:<details open="true"><summary>Expand all</summary>
     **Address** | **Description** 
     ------------|-----------------
@@ -100,14 +100,14 @@ This is a 16kB memory interface of Debug Module, the functionality of this modul
     0x330 | **whereto**, core will jump to this address whenever the abstract command or program buffer are set correctly, and the instruction at this address will decide where to jump to(Abstract Command or Program Buffer)
     0x338-0x35f | **Abstract Command**
     0x360-0x37f | **Program Buffer**
-    0x380-0x388 | **Data**, host can read returned data from this address
+    0x380-0x387 | **Data**, host can read returned data from this address
     0x800-0x1000 | **Debug Rom**, as described as above
     0x800 | **Halt Address**, core will jump to here when it is requested to halt
     0x808 | **Resume Address**, core will jumpt to here when it is requedted to resume
 
 </details>
 
-- State transition diagram<br>
+- State transition diagram for debug memory:<br>
 ![State transition for dm_mem](./doc/FSM_dm_mem_0.svg)
 ### Debug Module Jtag Interface (dmi_jtag)
 With regard to construct communication between host PC and debug module, we choose JTAG as our communication protocal. The main purpose of this module is receiving JTAG signal from host PC to generate debug request(dmi_req), and receiving dmi_resp from debug module and translating it into JTAG signal for transmission.
@@ -217,7 +217,7 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
     2. Read tdata1 for selected trigger and check if the trigger type is correct.
     3. Write breakpoint address to tdata2(tmatch_value).
     4. If decode_stage's PC is equal to any element in tmatch_value(which is a array), debug_controller will raise a debug_halt_req to halt the core.
-    
+
 ## Demo Example
 - Construct openOCD connection:<br>
 openOCD will open port 3333 for gdb to connect.
@@ -277,11 +277,15 @@ openOCD will open port 3333 for gdb to connect.
     halt
     ```
 - Run gdb with Aquila's bootcode (uartboot.elf) in another terminal:<br>
-    1. Attach to port 3333 (the core had halted by openOCD)
+    1. Run gdb with Aquila's boot code:<br>
+    ```
+    RISCV-debug-module-for-Aquila-Core/demo$ riscv32-unknown-elf-gdb uartboot.elf
+    ```
+    2. Attach to port 3333 (the core had halted by openOCD)
     ```
     (gdb) tar ext:3333 
     ```
-    2. Now you can control the core via GDB command.
+    3. Now you can control the core via GDB command.
     ```
     (gdb) c                #continue
     (gdb) ctrl+c           #halt

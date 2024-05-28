@@ -217,18 +217,7 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
     2. Read tdata1 for selected trigger and check if the trigger type is correct.
     3. Write breakpoint address to tdata2(tmatch_value).
     4. If decode_stage's PC is equal to any element in tmatch_value(which is a array), debug_controller will raise a debug_halt_req to halt the core.
-
-## Reference
-- [openhwgroup/cv32e40p](https://github.com/openhwgroup/cv32e40p)
-- [rocket-chip](https://github.com/chipsalliance/rocket-chip/tree/master)
-- [lowRISC/ibex-demo-system](https://github.com/lowRISC/ibex-demo-system/tree/main)
-- [lowRISC/ibex-core](https://github.com/lowRISC/ibex/tree/master)
-- [riscv-openOCD](https://github.com/riscv-collab/riscv-openocd)
-- [pulp/riscv-dbg](https://github.com/pulp-platform/riscv-dbg/blob/master/doc/debug-system.md)
-- [riscv-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain)
-- [Nios-debug-module](https://www.intel.com/content/www/us/en/docs/programmable/683632/21-4-21-1-1/risc-v-based-debug-module.html)
-- [openhwgroup/cva6](https://github.com/openhwgroup/cva6)
-
+    
 ## Demo Example
 - Construct openOCD connection:<br>
 openOCD will open port 3333 for gdb to connect.
@@ -304,3 +293,14 @@ openOCD will open port 3333 for gdb to connect.
     > Note:<br>
     My implmentation currently not support "halt on reset" feature, that is, if user reset the core(Ex: External reset button on FPGA or "run" command in gdb), they have to halt the core manually.<br>
     (gdb) mon halt
+
+## Reference
+- [openhwgroup/cv32e40p](https://github.com/openhwgroup/cv32e40p)
+- [rocket-chip](https://github.com/chipsalliance/rocket-chip/tree/master)
+- [lowRISC/ibex-demo-system](https://github.com/lowRISC/ibex-demo-system/tree/main)
+- [lowRISC/ibex-core](https://github.com/lowRISC/ibex/tree/master)
+- [riscv-openOCD](https://github.com/riscv-collab/riscv-openocd)
+- [pulp/riscv-dbg](https://github.com/pulp-platform/riscv-dbg/blob/master/doc/debug-system.md)
+- [riscv-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain)
+- [Nios-debug-module](https://www.intel.com/content/www/us/en/docs/programmable/683632/21-4-21-1-1/risc-v-based-debug-module.html)
+- [openhwgroup/cva6](https://github.com/openhwgroup/cva6)

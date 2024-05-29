@@ -18,11 +18,11 @@ module dm_core_control (
     input                ndmreset_i,           // reset signal for non-debug-module
 
     // core state information
-    input                halted_q_aligned_i,   // core is halted
-    input                resumereq_aligned_i,  // DM requesting to resume the core
-    input                resuming_q_aligned_i, // core is resuming
-    input                haltreq_aligned_i,    // DM request to halt the core
-    input                halted_aligned_i      
+    input                halted_q_i,           // core is halted
+    input                resumereq_i,          // DM requesting to resume the core
+    input                resuming_q_i,         // core is resuming
+    input                haltreq_i,            // DM request to halt the core
+    input                halted_i      
 );
   localparam  Idle         = 0,
               Go           = 1,
@@ -52,7 +52,7 @@ module dm_core_control (
         cmdbusy_o = 1'b0;
         go        = 1'b0;
         resume    = 1'b0;
-        if (cmd_valid_i && halted_q_aligned_i && !unsupported_command_i) begin
+        if (cmd_valid_i && halted_q_i && !unsupported_command_i) begin
           // core is halted and command is valud -> run command
           state_d = Go;
         end else if (cmd_valid_i) begin
@@ -60,8 +60,8 @@ module dm_core_control (
           cmderror_valid_o = 1'b1;
           cmderror_o = CmdErrorHaltResume;
         end
-        if (resumereq_aligned_i && !resuming_q_aligned_i &&
-            !haltreq_aligned_i && halted_q_aligned_i) begin
+        if (resumereq_i && !resuming_q_i &&
+            !haltreq_i && halted_q_i) begin
           // CSR want core to resume
           state_d = Resume;
         end
@@ -81,7 +81,7 @@ module dm_core_control (
         cmdbusy_o = 1'b1;
         go        = 1'b0;
         resume    = 1'b1;
-        if (resuming_q_aligned_i) begin
+        if (resuming_q_i) begin
           // wait for the core to resume
           state_d = Idle;
         end
@@ -91,7 +91,7 @@ module dm_core_control (
         cmdbusy_o = 1'b1;
         go        = 1'b0;
         resume    = 1'b0;
-        if (halted_aligned_i) begin
+        if (halted_i) begin
           // wait for the core to halted
           state_d = Idle;
         end

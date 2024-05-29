@@ -42,9 +42,6 @@ module dm_csrs #(
     input                                     data_valid_i
   );
 
-  localparam HartSelLen = 1;
-  localparam NrHartsAligned = 1;
-
   wire [1:0] dtm_op;
   assign dtm_op = dmi_req_i[33:32];
 
@@ -173,7 +170,7 @@ module dm_csrs #(
   reg   [63:0]        sbdata_d, sbdata_q;
 
   reg                 havereset_q;
-  wire                havereset_d;
+  reg                 havereset_d;
   // program buffer
   reg   [31:0] progbuf_d[ProgBufSize-1:0];
   reg   [31:0] progbuf_q[ProgBufSize-1:0];
@@ -207,20 +204,7 @@ module dm_csrs #(
   assign dmi_resp_valid_o     = ~resp_queue_empty;    // debug response is valid when response fifo queue is not empty
   assign dmi_req_ready_o      = ~resp_queue_full;     // ready to accept new debug request when respnse fifo queue is not full
   assign resp_queue_push      = dmi_req_valid_i & dmi_req_ready_o;    // accept new debug request when handshake success
-  assign hartsel_o         = {dmcontrol_q[15:6], dmcontrol_q[25:16]}; // select target core(can only be 0)
-
-  // Avoid linting warning ( but only onn selectable core )
-  reg   havereset_d_aligned;
-  wire  havereset_q_aligned;
-  wire  resumeack_aligned;
-  wire  unavailable_aligned;
-  wire  halted_aligned;
-  assign resumeack_aligned   = resumeack_i;
-  assign unavailable_aligned = unavailable_i;
-  assign halted_aligned      = halted_i;
-
-  assign havereset_d         = havereset_d_aligned;
-  assign havereset_q_aligned = havereset_q;
+  assign hartsel_o            = {dmcontrol_q[15:6], dmcontrol_q[25:16]}; // select target core(can only be 0)
 
 
   // helper registers
@@ -279,23 +263,23 @@ module dm_csrs #(
     dmstatus[7]   = 1'b1;                                  // not support authentication
     dmstatus[5]   = 1'b0;                                  // no halt on reset
 
-    dmstatus[19]  = havereset_q_aligned;                   // allhavereset
-    dmstatus[18]  = havereset_q_aligned;                   // anyhavereset
+    dmstatus[19]  = havereset_q;                           // allhavereset
+    dmstatus[18]  = havereset_q;                           // anyhavereset
 
-    dmstatus[17]  = resumeack_aligned;                     // allresumeack
-    dmstatus[16]  = resumeack_aligned;                     // anyresumeack
+    dmstatus[17]  = resumeack_i;                           // allresumeack
+    dmstatus[16]  = resumeack_i;                           // anyresumeack
 
-    dmstatus[13]  = unavailable_aligned;                   // allunavail
-    dmstatus[12]  = unavailable_aligned;                   // anyunavail
+    dmstatus[13]  = unavailable_i;                         // allunavail
+    dmstatus[12]  = unavailable_i;                         // anyunavail
 
     dmstatus[15]  = (hartsel_o) > 0;                       // allnonexistent
     dmstatus[14]  = (hartsel_o) > 0;                       // anynonexistent
 
-    dmstatus[9]   = halted_aligned & ~unavailable_aligned; // allhalted
-    dmstatus[8]   = halted_aligned & ~unavailable_aligned; // anyhalted
+    dmstatus[9]   = halted_i & ~unavailable_i;             // allhalted
+    dmstatus[8]   = halted_i & ~unavailable_i;             // anyhalted
 
-    dmstatus[11]  = ~halted_aligned & ~unavailable_aligned;// allrunning
-    dmstatus[10]  = ~halted_aligned & ~unavailable_aligned;// anyrunning
+    dmstatus[11]  = ~halted_i & ~unavailable_i;            // allrunning
+    dmstatus[10]  = ~halted_i & ~unavailable_i;            // anyrunning
 
     // abstractcs
     abstractcs        = 0;
@@ -309,7 +293,7 @@ module dm_csrs #(
     abstractauto_d[15:12] = 0; // zero
 
     // default assignments
-    havereset_d_aligned = havereset_q;
+    havereset_d         = havereset_q;
     dmcontrol_d         = dmcontrol_q;
     cmderr_d            = cmderr_q;
     command_d           = command_q;
@@ -416,7 +400,7 @@ module dm_csrs #(
         dmcontrol_d = dmi_req_data;
         // if it is acked -> clear havereset
         if (dmcontrol_d[28]) begin
-          havereset_d_aligned = 1'b0;
+          havereset_d = 1'b0;
         end
       end
       else if (dm_csr_addr == AbstractCS) begin
@@ -498,7 +482,7 @@ module dm_csrs #(
 
     // when reset -> set havereset flag to 1
     if (ndmreset_o) begin
-      havereset_d_aligned = 1'b1;
+      havereset_d = 1'b1;
     end
 
     // dmcontrol
@@ -557,8 +541,8 @@ module dm_csrs #(
 
   // response FIFO
   fifo #(
-         .n                ( 34                            ),
-         .DEPTH            ( 2                             )
+         .n                ( 34                   ),
+         .DEPTH            ( 2                    )
        ) i_fifo (
          .clk_i            ( clk_i                ),
          .rst_ni           ( rst_ni               ),

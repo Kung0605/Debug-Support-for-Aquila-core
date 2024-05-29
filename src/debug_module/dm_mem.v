@@ -39,8 +39,6 @@ module dm_mem #(
     output  [BusWidth-1:0]              rdata_o               // returned data from memory
   );
   localparam  DbgAddressBits = 12;
-  localparam  HartSelLen     = 1;
-  localparam  NrHartsAligned = 1;
   localparam  MaxAar         = 3;
   // memory address mapping
   localparam  LoadBaseAddr   = 5'd10;
@@ -78,9 +76,9 @@ module dm_mem #(
   // abstract command
   wire  [63:0] abstract_cmd [7:0];
   // core status register
-  wire         halted_d;
+  reg          halted_d;
   reg          halted_q;
-  wire         resuming_d;
+  reg          resuming_d;
   reg          resuming_q;
   // dm_mem state register
   wire         resume, go;
@@ -119,20 +117,7 @@ module dm_mem #(
   assign hartsel       = hartsel_i[0];
   assign wdata_hartsel = wdata_i[0];
 
-  // aligned signal for core status
-  wire resumereq_aligned, haltreq_aligned,
-       halted_q_aligned, resumereq_wdata_aligned,
-       resuming_q_aligned;
-  reg  halted_d_aligned, halted_aligned, resuming_d_aligned;
-
-  assign resumereq_aligned       = resumereq_i;
-  assign haltreq_aligned         = haltreq_i;
-  assign resumereq_wdata_aligned = resumereq_i;
-
-  assign halted_q_aligned        = halted_q;
-  assign halted_d                = halted_d_aligned;
-  assign resuming_q_aligned      = resuming_q;
-  assign resuming_d              = resuming_d_aligned;
+  reg    halted;
 
   // select data is returned from RAM part or ROM part
   wire  fwd_rom_d;
@@ -166,11 +151,11 @@ module dm_mem #(
                      .going_i               ( going                       ),
                      .exception_i           ( exception                   ),
                      .ndmreset_i            ( ndmreset_i                  ),
-                     .halted_q_aligned_i    ( halted_q_aligned            ),
-                     .resumereq_aligned_i   ( resumereq_aligned           ),
-                     .resuming_q_aligned_i  ( resuming_q_aligned          ),
-                     .haltreq_aligned_i     ( haltreq_aligned             ),
-                     .halted_aligned_i      ( halted_aligned              )
+                     .halted_q_i            ( halted_q                    ),
+                     .resumereq_i           ( resumereq_i                 ),
+                     .resuming_q_i          ( resuming_q                  ),
+                     .haltreq_i             ( haltreq_i                   ),
+                     .halted_i              ( halted                      )
                    );
 
   // word mux for 32bit and 64bit buses
@@ -189,8 +174,8 @@ module dm_mem #(
   integer dc;
   always @(*) begin
     // default assignment
-    halted_d_aligned   = halted_q;
-    resuming_d_aligned = resuming_q;
+    halted_d   = halted_q;
+    resuming_d = resuming_q;
     rdata_d            = rdata_q;
     for (i = 0; i < DataCount; i = i + 1)
       data_bits[i]     = data_i[i];
@@ -199,20 +184,20 @@ module dm_mem #(
 
     data_valid_o   = 1'b0;
     exception      = 1'b0;
-    halted_aligned = 0;
+    halted = 0;
     going          = 1'b0;
 
     // clear the resuming state
     if (clear_resumeack_i) begin
-      resuming_d_aligned = 1'b0;
+      resuming_d = 1'b0;
     end
     // new memory request is comming
     if (req_i) begin
       if (we_i) begin
         if (debug_addr == HaltedAddr) begin
           // write to HaltedAddr -> core is halted
-          halted_aligned = 1'b1;
-          halted_d_aligned = 1'b1;
+          halted = 1'b1;
+          halted_d = 1'b1;
         end
         else if (debug_addr == GoingAddr) begin
           // write to goingAddr -> command going
@@ -220,8 +205,8 @@ module dm_mem #(
         end
         else if (debug_addr == ResumingAddr) begin
           // start resume -> clear halted flag, set resuming flag
-          halted_d_aligned = 1'b0;
-          resuming_d_aligned = 1'b1;
+          halted_d = 1'b0;
+          resuming_d = 1'b1;
         end
         // exception occur
         else if (debug_addr == ExceptionAddr)
@@ -247,7 +232,7 @@ module dm_mem #(
         // deug rom part
         if (debug_addr == WhereToAddr) begin
           // jump to abstract, program buffer or resumeaddr
-          if (resumereq_wdata_aligned) begin
+          if (resumereq_i) begin
             // core start resume -> jump to resumeaddr
             rdata_d = {32'b0, jal(5'b0, ResumeAddress[11:0] - WhereToAddr)};
           end
@@ -293,8 +278,8 @@ module dm_mem #(
     end
     // core is not resuming and not halted when they are reset
     if (ndmreset_i) begin
-      halted_d_aligned   = 0;
-      resuming_d_aligned = 0;
+      halted_d   = 0;
+      resuming_d = 0;
     end
     // assign output data
     for (i = 0; i < DataCount; i = i + 1)

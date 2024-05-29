@@ -198,16 +198,16 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
 
 ## How debugger(openOCD) interact with debug module
 - **Halt the core**:<br>
-    1. dmi_req = {8'h10, 2'h2, 32'h80000001}; // write to dmcontrol and set haltreq to 1
-    2. dm_csr send debug_request to core
-    3. core set PC to haltaddress, execute instructions in debug rom.
+    1. dmi_req = {8'h10, 2'h2, 32'h80000001}; // write to dmcontrol and set haltreq to 1
+    2. dm_csr send debug_request to core
+    3. core set PC to haltaddress, execute instructions in debug rom.
 - **Resume the core**:<br>
-    1. dmi_req = {8'h10, 2'h2, 32'h40000001}; // write to dmcontrol and set resumereq to 1
-    2. Resume flag in dm_mem will be set to 1
-    3. Core will branch to resumeaddress and execute the command for resume, which will end up with dret
+    1. dmi_req = {8'h10, 2'h2, 32'h40000001}; // write to dmcontrol and set resumereq to 1
+    2. Resume flag in dm_mem will be set to 1
+    3. Core will branch to resumeaddress and execute the command for resume, which will end up with dret
 - **Read/write register**:<br>
-    1. dmi_req = {8'h17, 2'h2, 32'h00220XXX}; // write to command and read from XXX register
-    2. dm_mem generate abstract command accordingly
+    1. dmi_req = {8'h17, 2'h2, 32'h00220XXX}; // write to command and read from XXX register
+    2. dm_mem generate abstract command accordingly
     ```riscv
     Abstract_command:
     csrrw x0, dscratch1, x10 // backup x10 
@@ -221,7 +221,7 @@ For the Aquila Core to be compatible with our Debug Module implementation, some 
     csrrs x10, dscratch1, x0 // restore x10
     ebreak                   // jump back to halt address
     ```
-    3. Read Data0 to get the value of the target register
+    3. Read Data0 to get the value of the target register
 - **Read/Write Memory**:<br>
     1. Write lw/sw into the program buffer.
     2. Execute instruction in the program buffer to get the value of memory / write data into memory.

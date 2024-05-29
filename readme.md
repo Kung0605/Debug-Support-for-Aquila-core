@@ -238,7 +238,7 @@ openOCD will open port 3333 for gdb to connect.
     ```
     User@bash:~/RISCV-debug-module-for-Aquila-Core/demo$ openocd -f arty-a7-openocd-cfg.tcl
     ```
- Example openOCD configuration script:<br>
+    Example openOCD configuration script:<br>
     ```
     # Important: openOCD will connect to the same USB port as Vivado, to run openOCD, 
     # users should close Vivado's Hardware Manager first.
@@ -292,25 +292,27 @@ openOCD will open port 3333 for gdb to connect.
     ```
 - Run gdb with Aquila's boot code (uartboot.elf) in another terminal:<br>
     1. Run gdb with Aquila's boot code:<br>
- ```
- RISCV-debug-module-for-Aquila-Core/demo$ riscv32-unknown-elf-gdb uartboot.elf
- ```
-    2. Attach to port 3333 (the core had halted by openOCD)
- ```
- (gdb) tar ext:3333 
- ```
-    3. Now you can control the core via the GDB command.
- ```
- (gdb) c                #continue
- (gdb) ctrl+c           #halt
- (gdb) si               #step one instruction
- (gdb) load dhry.elf    #load .elf file into memory
- (gdb) b func           #set breakpoint on func
- (gdb) b *0x124         #set breakpoint on instructions memory address 0x124
- ```
- > Note:<br>
- My implementation currently does not support the "halt on reset" feature, that is, if users reset the core(Ex: External reset button on FPGA or "run" command in gdb), they have to halt the core manually.<br>
- (gdb) mon halt
+    ```
+    RISCV-debug-module-for-Aquila-Core/demo$ riscv32-unknown-elf-gdb uartboot.elf
+    ```
+
+    2. Attach to port 3333 (the core had halted by openOCD)
+    ```
+    (gdb) tar ext:3333 
+    ```
+    3. Now you can control the core via the GDB command.
+    ```
+    (gdb) c                #continue
+    (gdb) ctrl+c           #halt
+    (gdb) si               #step one instruction
+    (gdb) load dhry.elf    #load .elf file into memory
+    (gdb) b func           #set breakpoint on func
+    (gdb) b *0x124         #set breakpoint on instructions memory address 0x124
+    ```
+
+    > Note:<br>
+    My implementation currently does not support the "halt on reset" feature, that is, if users reset the core(Ex: External reset button on FPGA or "run" command in gdb), they have to halt the core manually.<br>
+    (gdb) mon halt
 
 ## Reference
 - [openhwgroup/cv32e40p](https://github.com/openhwgroup/cv32e40p)

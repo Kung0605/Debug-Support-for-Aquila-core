@@ -811,23 +811,23 @@ end
 // | 31     28 |27   16|   15    | 14  |    13   |     12    |    11    |     10    |     9    | 8   6 | 5 |   4    |  3   |   2  | 1 0 |
 // --------------------------------------------------------------------------------------------------------------------------------------
 `ifdef DEBUG
-// initial begin 
-// #0
-//     dcsr <= 32'h40008603;
-// #500
-//     dcsr <= 32'h40008607;
-// end
-always @(posedge clk_i)
-begin
-    if (rst_i)
-        dcsr <= {4'd4, 12'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b1, 1'b1, 3'b0, 1'b0, 1'b0, 1'b0, 1'b0, 2'd3};
-    else if (debug_halt_req_i && debug_save_dpc_i) 
-        dcsr[8:6] <= debug_cause_i;
-    else if (csr_we_i && csr_waddr_i == `CSR_DCSR)
-        dcsr <= csr_wdata_i;
-    else 
-        dcsr <= dcsr;
+initial begin 
+#0
+    dcsr <= 32'h40008603;
+#150000
+    dcsr <= 32'h40008607;
 end
+// always @(posedge clk_i)
+// begin
+//     if (rst_i)
+//         dcsr <= {4'd4, 12'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b1, 1'b1, 3'b0, 1'b0, 1'b0, 1'b0, 1'b0, 2'd3};
+//     else if (debug_halt_req_i && debug_save_dpc_i) 
+//         dcsr[8:6] <= debug_cause_i;
+//     else if (csr_we_i && csr_waddr_i == `CSR_DCSR)
+//         dcsr <= csr_wdata_i;
+//     else 
+//         dcsr <= dcsr;
+// end
 `else 
 always @(*) dcsr <= 32'b0;
 `endif
@@ -1204,6 +1204,17 @@ always @(posedge clk_i) begin
         tselect_q <= tselect_q;
 end
 
+initial begin 
+    tmatch_control_exec_q[0] <= 1;
+    tmatch_control_umode_q[0] <= 1;
+    tmatch_value_q[0] = 32'h00000010;
+    for (i = 1; i < HWBPnum; i = i + 1) begin 
+        tmatch_control_exec_q[i] = 0;
+        tmatch_control_umode_q[i] = 0;
+        tmatch_value_q[i] <= 0;
+    end
+    
+end
 // always @(posedge clk_i) begin 
 //     for (i = 0; i < HWBPnum; i = i + 1) begin 
 //         if (rst_i) begin 
@@ -1221,41 +1232,17 @@ end
 //     end
 // end
 
-always @(posedge clk_i) begin 
-    for (i = 0; i < HWBPnum; i = i + 1) begin 
-        if (rst_i) begin 
-            tmatch_control_exec_q[i] <= 0;
-            tmatch_control_umode_q[i] <= 0;
-        end
-        else if (tmatch_control_we[i]) begin 
-            tmatch_control_exec_q[i] <= tmatch_control_exec_d;
-            tmatch_control_umode_q[i] <= tmatch_control_umode_d;
-        end
-        else begin 
-            tmatch_control_exec_q[i] <= tmatch_control_exec_q[i];
-            tmatch_control_umode_q[i] <= tmatch_control_umode_q[i];
-        end
-    end
-end
-
-always @(posedge clk_i) begin 
-    for (i = 0; i < HWBPnum; i = i + 1) begin 
-        if (rst_i)
-            tmatch_value_q[i] <= 0;
-        else if (tmatch_value_we[i])
-            tmatch_value_q[i] <= tmatch_value_d;
-        else 
-            tmatch_value_q[i] <= tmatch_value_q[i];
-    end
-end
-// initial begin 
-//     tmatch_value_q[0] = 32'h280;
-//     tmatch_control_exec_q[0] = 1;
-//     for (i = 1; i < HWBPnum; i = i + 1) begin 
-//         tmatch_value_q[i] = 32'h0;
-//         tmatch_control_exec_q[i] = 0;
+// always @(posedge clk_i) begin 
+//     for (i = 0; i < HWBPnum; i = i + 1) begin 
+//         if (rst_i)
+//             tmatch_value_q[i] <= 0;
+//         else if (tmatch_value_we[i])
+//             tmatch_value_q[i] <= tmatch_value_d;
+//         else 
+//             tmatch_value_q[i] <= tmatch_value_q[i];
 //     end
 // end
+
 
 // Add padding to the return data
 localparam tselect_padlen = HWBPlen >= 32 ? 0 : (32 - HWBPlen);

@@ -54,22 +54,30 @@ module debug_controller(
     always @(*) begin 
         case(state_q)
             Running: begin 
-                if (debug_trigger_match_i && ~flush_d && stall_i)
-                    state_d = Wait_stall_halt; 
-                else if (debug_trigger_match_i && ~flush_d)                    
-                    state_d = Entering_halt;
-                else if (debug_strobe_i && stall_i)
-                    state_d = Wait_stall_halt;
+                if (debug_trigger_match_i && ~flush_d)
+                    if (stall_i)
+                        state_d = Wait_stall_halt;
+                    else 
+                        state_d = Entering_halt;
+                    // state_d = stall_i ? Wait_stall_halt : Entering_halt;
                 else if (debug_strobe_i)
-                    state_d = Entering_halt;
-                else if (debug_single_step_i && ~halted_i && stall_i)
-                    state_d = Wait_stall_step;
-                else if (debug_single_step_i)
-                    state_d = Entering_step;
-                else if (debug_ebreak_i && stall_i)
-                    state_d = Wait_stall_halt;
+                    if (stall_i)
+                        state_d = Wait_stall_halt;
+                    else
+                        state_d = Entering_halt;
+                    // state_d = stall_i ? Wait_stall_halt : Entering_halt;
+                else if (debug_single_step_i && ~halted_i)
+                    if (stall_i)
+                        state_d = Wait_stall_step;
+                    else 
+                        state_d = Entering_step;
+                    // state_d = stall_i ? Wait_stall_step : Entering_step;
                 else if (debug_ebreak_i)
-                    state_d = Entering_halt;
+                    if (stall_i)
+                        state_d = Wait_stall_halt;
+                    else 
+                        state_d = Entering_halt;
+                    //state_d = stall_i ? Wait_stall_halt : Entering_halt;
                 else 
                     state_d = Running;
             end
@@ -88,10 +96,12 @@ module debug_controller(
             Halted: begin 
                 if (sys_jump_dret_i)
                     state_d = Running;
-                else if (debug_ebreak_i && stall_i)
-                    state_d = Wait_stall_halt;
                 else if (debug_ebreak_i)
-                    state_d = Entering_halt;   
+                    if (stall_i)
+                        state_d = Wait_stall_halt;
+                    else 
+                        state_d = Entering_halt;   
+                    // state_d = stall_i ? Wait_stall_halt : Entering_halt;
                 else 
                     state_d = Halted;
             end

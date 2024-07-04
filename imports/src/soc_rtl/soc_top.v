@@ -340,8 +340,7 @@ end
 // dm_top
 dm_top # (
     .BusWidth             ( XLEN              ),
-    .DmBaseAddress        ( `DmBaseAddress    ),
-    .SelectableHarts      ( 1'b1              )
+    .DmBaseAddress        ( `DmBaseAddress    )
 ) i_dm_top (
     .clk_i                ( clk               ),
     .rst_ni               ( rst_ni            ),

@@ -94,14 +94,16 @@ module dm_abstractcmd_generator(
         abstract_cmd[0][31:0]  = illegal;
         // load debug module base address into a0
         abstract_cmd[0][63:32] = auipc(5'd10, 0);
-        // calculate dm_mem offset
+        // calculate dm_mem base address offset
         abstract_cmd[1][31:0]  = srli(5'd10, 5'd10, 6'd12);
         abstract_cmd[1][63:32] = slli(5'd10, 5'd10, 6'd12);
-        abstract_cmd[2][31:0]  = nop;
+        // reserve for register command 
+        abstract_cmd[2][31:0]  = nop;                    
         abstract_cmd[2][63:32] = nop;
         abstract_cmd[3][31:0]  = nop;
         abstract_cmd[3][63:32] = nop;
         abstract_cmd[4][31:0]  = csrr(CSR_DSCRATCH1, 5'd10);
+        // finish command
         abstract_cmd[4][63:32] = ebreak;
         abstract_cmd[5]      = 0;
         abstract_cmd[6]      = 0;
@@ -169,7 +171,6 @@ module dm_abstractcmd_generator(
                     abstract_cmd[0][31:0] = ebreak; // leave abstractcmd to avoid error
                     unsupported_command = 1'b1;
                 end
-
                 if (postexec && !unsupported_command) begin
                     // jump to program buffer directly
                     abstract_cmd[4][63:32] = nop;

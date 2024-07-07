@@ -43,3 +43,4 @@
     ```
     lsusb
     ```
+## Install riscv-openocd

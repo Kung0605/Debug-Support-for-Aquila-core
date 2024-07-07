@@ -101,6 +101,11 @@ module dm_csrs #(
   wire [1:0] dtm_op; 
   assign dtm_op = dmi_req_i[33:32];
 
+  wire         resp_queue_full;
+  wire         resp_queue_empty;
+  wire         resp_queue_push;
+  wire         resp_queue_pop;
+
   // dm_csr address
   localparam    Data0        = 8'h04,
                 Data1        = 8'h05,
@@ -172,16 +177,9 @@ module dm_csrs #(
                 CmdErrorException  = 3,
                 CmdErrorHaltResume = 4,
                 CmdErrorBus        = 5,
-                CmdErrorOther      = 7;
-
+                CmdErrorOther = 7;
   localparam DataEnd = Data0 + {4'h0, DataCount} - 8'h1;          // Range for Data
   localparam ProgBufEnd = ProgBuf0 + {4'h0, ProgBufSize} - 8'h1;  // Range for Progbuf
-
-  // response queue FIFO signals
-  wire         resp_queue_full;
-  wire         resp_queue_empty;
-  wire         resp_queue_push;
-  wire         resp_queue_pop;
 
   // halt sum
   reg   [31:0] haltsum0, haltsum1, haltsum2, haltsum3;
@@ -268,8 +266,8 @@ module dm_csrs #(
 
 
   // helper registers
-  wire  [ 7:0]  dm_csr_addr;      // debug request's address
-  reg   [31:0]  sbcs;             // system bus control and status
+  wire  [ 7:0]  dm_csr_addr; // debug request's address
+  reg   [31:0]  sbcs;        // system bus control and status
   reg   [31:0]  a_abstractcs;
   wire  [ 3:0]  autoexecdata_idx; // Data index selected to return
 

@@ -343,22 +343,20 @@ end
 
 
 // Debug signals 
-wire             debug_halt_req;       // halt request from debug controller to halt the core
-wire             halted;             
-wire             debugging;          
+wire       debug_halt_req;
+wire       halted;
+wire       debugging;
 
-assign halted = dec_pc[XLEN-1:XLEN-8] == 8'hCD;
+wire       debug_mode;
+wire       debug_mode_entering;
+wire [2:0] debug_cause;
+wire       debug_csr_save;
+wire       debug_single_step;
+wire       trigger_match;
 
-wire [2:0]       debug_cause;          // the reason that the core is in debug mode
-wire             debug_single_step;    // the core is stepping
-wire             trigger_match;        // breakpoint is matched
+wire       debug_save_dpc;
+wire       debug_jump;
 
-wire             debug_save_dpc;       // require the CSR file to save dpc
-wire  [XLEN-1:0] dpc_to_csr;           // the dpc determined by cause of debug 
-wire  [XLEN-1:0] dpc_from_csr;         // stored dpc for core to return to
-wire  debug_cause_by_breakpoint;       // indicate the reason of debug is breakpoint
-
-wire  dec_debug_ebreak;                // indicate the reason of debug is ebreak instruction
 
 // =============================================================================
 always@(*) begin
@@ -442,8 +440,7 @@ end
 
 // -----------------------------------------------------------------------------
 // Output instruction/data request signals
-// assign code_req_o = iS == i_NEXT;                // original assignment, will stall on each instruction  
-assign code_req_o = debugging ? (iS == i_NEXT) : 1; 
+assign code_req_o = debugging ? (iS == i_NEXT) : 1;
 assign data_req_o = (dS == d_IDLE) && (exe_re || exe_we);
 
 // -----------------------------------------------------------------------------
@@ -460,6 +457,14 @@ always @(posedge clk_i) begin
 end
 
 assign data_read2wbk = (dS == d_STALL) ? data_read_reg : data_i;
+
+// -----------------------------------------------------------------------------
+// Debug signals
+wire  [XLEN-1:0] dpc_to_csr;
+wire  [XLEN-1:0] dpc_from_csr;
+wire  debug_cause_by_breakpoint;
+
+wire  dec_debug_ebreak;
 
 `ifdef DEBUG
 assign dpc_to_csr = debug_cause_by_breakpoint ? dec_pc :
@@ -1049,4 +1054,5 @@ debug_controller i_debug_controller (
     .debugging_o(debugging)
 );
 
+assign halted = dec_pc[XLEN-1:XLEN-8] == 8'hCD;
 endmodule

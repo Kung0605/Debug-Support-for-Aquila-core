@@ -147,7 +147,7 @@ module dm_core_control (
         go        = 1'b0;
         resume    = 1'b0;
         if (halted_i) begin
-          // wait for the core to be halted
+          // wait for the core to halted
           state_d = Idle;
         end
       end

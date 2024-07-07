@@ -103,6 +103,9 @@ module dm_top #(
   wire                              dmi_req_valid;
   wire                              dmi_req_ready;
   wire  [40:0]                      dmi_req;
+  // reg                               dmi_req_valid;
+  // wire                              dmi_req_ready;
+  // reg   [40:0]                      dmi_req;
   // debug response
   wire                              dmi_resp_valid;
   wire                              dmi_resp_ready;
@@ -189,4 +192,21 @@ module dm_top #(
     .dmi_resp_valid_i       ( dmi_resp_valid    ),
     .dmi_resp_ready_o       ( dmi_resp_ready    )
   );
+  // initial begin 
+  // #0 
+  // // dmi_req_valid = 0;
+  // // dmi_req = {8'h10, 2'h2, 32'h00000000};
+  // // #138000
+
+  // dmi_req_valid = 1;
+  // dmi_req = {8'h10, 2'h2, 32'h40000001};
+  // #50 
+  // dmi_req_valid = 0;
+  // #5000
+  // dmi_req_valid = 1;
+  // dmi_req = {8'h10, 2'h2, 32'h40000001};
+  // #50 
+  // dmi_req_valid = 0;
+  
+  
 endmodule

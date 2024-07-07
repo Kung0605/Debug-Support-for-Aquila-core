@@ -29,7 +29,6 @@ module dmi_jtag (
 
   wire dmi_clear;      // Functional (warm) reset of the entire DMI
   wire jtag_dmi_clear; // Synchronous reset of DMI triggered by TestLogicReset in
-  // jtag TAP
 
   // JTAG control signals
   wire tck;
@@ -47,25 +46,22 @@ module dmi_jtag (
 
   always @(*) begin
     dtmcs_d = dtmcs_q;            // default assignment
-    if (capture) begin
-      if (dtmcs_select) begin
+    if (dtmcs_select) begin 
+      if (capture) begin 
         dtmcs_d[31:15] = 0;
         dtmcs_d[14:12] = 3'd1;    // idle: 1: Enter Run-Test/Idle and leave it immediately
         dtmcs_d[11:10] = error_q; // dmistat: 0: No error, 2: Op failed, 3: too fast
         dtmcs_d[9:4]   = 6'd7;    // abits: The size of address in dmi
         dtmcs_d[3:0]   = 4'd1;    // debug spec 0.13
       end
-    end
-
-    if (shift) begin
-      if (dtmcs_select) begin
+      if (shift) begin 
         dtmcs_d  = {tdi, dtmcs_q[31:1]};
       end
     end
   end
 
   always @(posedge tck or negedge trst_n) begin
-    if (!trst_n) begin
+    if (~trst_n) begin
       dtmcs_q <= 0;
     end
     else begin
@@ -138,23 +134,17 @@ module dmi_jtag (
             // assign request address and data
             address_d = dmi[40:34];
             data_d = dmi[33:2];
-            if (dmi[1:0] == DTM_READ) begin
-              // operation is read 
-              state_d = Read;
-            end
-            else if (dmi[1:0] == DTM_WRITE) begin
-              // operation is write
-              state_d = Write;
-            end
+            state_d = dmi[1:0] == DTM_READ ? Read :
+                      dmi[1:0] == DTM_WRITE ? Write :
+                      state_q;
           end
         end
 
         Read: begin
           // debug request is valid to read
-          dmi_req_valid = 1'b1;
-          if (dmi_req_ready) begin
+          if (dmi_req_ready)
             state_d = WaitReadValid;
-          end
+          dmi_req_valid = 1'b1;
         end
 
         WaitReadValid: begin
@@ -185,10 +175,10 @@ module dmi_jtag (
 
         Write: begin
           // debug request is valid to read
-          dmi_req_valid = 1'b1;
           if (dmi_req_ready) begin
             state_d = WaitWriteValid;
           end
+          dmi_req_valid = 1'b1;
         end
 
         WaitWriteValid: begin
@@ -214,11 +204,8 @@ module dmi_jtag (
         end
       endcase
       // receive a new debug request when state is not Idle
-      if (update && state_q != Idle) begin
-        error_dmi_busy = 1'b1;
-      end
       // capture go up in incorrect state -> error
-      if (capture && ((state_q == Read) || (state_q ==  WaitReadValid))) begin
+      if (update && state_q != Idle || (capture && ((state_q == Read) || (state_q ==  WaitReadValid)))) begin
         error_dmi_busy = 1'b1;
       end
       // save error state
@@ -247,7 +234,7 @@ module dmi_jtag (
     else begin
       if (capture) begin
         if (dmi_select) begin
-          if (error_q == DMINoError && !error_dmi_busy) begin
+          if (error_q == DMINoError && ~error_dmi_busy) begin
             // success
             dr_d = {address_q, data_q, DMINoError};
           end
@@ -269,7 +256,7 @@ module dmi_jtag (
 
   // sequential logic
   always @(posedge tck or negedge trst_n) begin
-    if (!trst_n) begin
+    if (~trst_n) begin
       dr_q      <= 0;
       state_q   <= Idle;
       address_q <= 0;

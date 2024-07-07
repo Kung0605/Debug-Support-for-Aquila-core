@@ -150,19 +150,9 @@ wire [31:0] dm_device_wdata;
 reg         dm_device_rvalid;
 wire [31:0] dm_device_rdata;
 
-// Device signals.
+// Device parameters.
 localparam  NrDevices = 3;
-localparam  NrHosts   = 2;
-// Host signals.
-wire        host_req      [NrHosts-1:0];
-reg         host_gnt      [NrHosts-1:0];
-wire [31:0] host_addr     [NrHosts-1:0];
-wire        host_we       [NrHosts-1:0];
-wire [ 3:0] host_be       [NrHosts-1:0];
-wire [31:0] host_wdata    [NrHosts-1:0];
-reg         host_rvalid   [NrHosts-1:0];
-reg  [31:0] host_rdata    [NrHosts-1:0];
-wire        host_err      [NrHosts-1:0];
+
 // Device signals.
 wire        device_req    [NrDevices-1:0];
 wire [31:0] device_addr   [NrDevices-1:0];
@@ -171,12 +161,15 @@ wire [ 3:0] device_be     [NrDevices-1:0];
 wire [31:0] device_wdata  [NrDevices-1:0];
 wire        device_rvalid [NrDevices-1:0];
 wire [31:0] device_rdata  [NrDevices-1:0];
-wire        device_err    [NrDevices-1:0];
 
 wire mem_instr_req;
 wire dm_instr_req;
-reg  core_instr_sel_dbg;
-reg  core_instr_rvalid;
+
+// debug memory
+wire               debug_mem_req;
+wire [XLEN-1:0]    debug_mem_addr;
+wire               debug_mem_ready;
+wire [XLEN-1:0]    debug_mem_rdata;
 ////////////////////////////////////////////////
 // --------- System Clock Generator --------------------------------------------
 // Generates a 41.66667 MHz system clock from the 100MHz oscillator on the PCB.
@@ -204,12 +197,6 @@ always @(posedge clk) begin
     else
         sync_reset <= {sync_reset[SR_N-2 : 0], 1'b0};
 end
-
-// debug memory
-wire               debug_mem_req;
-wire [XLEN-1:0]    debug_mem_addr;
-wire               debug_mem_ready;
-wire [XLEN-1:0]    debug_mem_rdata;
 
 // -----------------------------------------------------------------------------
 //  Aquila processor core.
@@ -294,7 +281,7 @@ UART(
 
 
 // --------------------------------------
-// localparam NB_PERIPHERALS = Debug + 1;
+
 assign unavailable = 1'b0;
 assign test_en = 1'b0;
 localparam DbgDev = 2;

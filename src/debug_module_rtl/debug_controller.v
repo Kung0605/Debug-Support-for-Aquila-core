@@ -111,21 +111,25 @@ module debug_controller(
                         state_d = Wait_stall_halt;
                     else 
                         state_d = Entering_halt;
+                    // state_d = stall_i ? Wait_stall_halt : Entering_halt;
                 else if (debug_strobe_i)
                     if (stall_i)
                         state_d = Wait_stall_halt;
                     else
                         state_d = Entering_halt;
+                    // state_d = stall_i ? Wait_stall_halt : Entering_halt;
                 else if (debug_single_step_i && ~halted_i)
                     if (stall_i)
                         state_d = Wait_stall_step;
                     else 
                         state_d = Entering_step;
+                    // state_d = stall_i ? Wait_stall_step : Entering_step;
                 else if (debug_ebreak_i)
                     if (stall_i)
                         state_d = Wait_stall_halt;
                     else 
                         state_d = Entering_halt;
+                    //state_d = stall_i ? Wait_stall_halt : Entering_halt;
                 else 
                     state_d = Running;
             end
@@ -149,6 +153,7 @@ module debug_controller(
                         state_d = Wait_stall_halt;
                     else 
                         state_d = Entering_halt;   
+                    // state_d = stall_i ? Wait_stall_halt : Entering_halt;
                 else 
                     state_d = Halted;
             end

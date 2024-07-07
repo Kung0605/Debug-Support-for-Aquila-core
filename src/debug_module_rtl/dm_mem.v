@@ -97,7 +97,7 @@ module dm_mem #(
   localparam  DbgAddressBits = 12;
   localparam  MaxAar         = 3;
   // memory address mapping
-  localparam  LoadBaseAddr        = 5'd10;
+  localparam  LoadBaseAddr   = 5'd10;
   localparam  DataAddr            = 32'h380;
   localparam  HaltAddress         = 64'h800;
   localparam  ResumeAddress       = HaltAddress + 8;

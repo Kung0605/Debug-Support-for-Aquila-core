@@ -347,7 +347,7 @@ reg  [XLEN-1 : 0] tselect;
 reg  [XLEN-1 : 0] tdata1;
 reg  [XLEN-1 : 0] tdata2;
 reg  [XLEN-1 : 0] tdata3;
-reg  [XLEN-1 : 0] tinfo;
+(* dont_touch = "true" *)reg  [XLEN-1 : 0] tinfo;
 reg  [XLEN-1 : 0] mcontext;
 reg  [XLEN-1 : 0] scontext;
 
@@ -815,6 +815,12 @@ end
 // | 31     28 |27   16|   15    | 14  |    13   |     12    |    11    |     10    |     9    | 8   6 | 5 |   4    |  3   |   2  | 1 0 |
 // --------------------------------------------------------------------------------------------------------------------------------------
 `ifdef DEBUG
+// initial begin 
+// #0
+//     dcsr = 32'h40008603;
+// #137500
+//     dcsr = 32'h40008607;
+// end
 always @(posedge clk_i)
 begin
     if (rst_i)
